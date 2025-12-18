@@ -1,5 +1,5 @@
 {
-  "buildTime": "2025-12-16T20:24:31.022Z",
+  "buildTime": "2025-12-18T11:51:10.456Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.57",
     "types": "1.0.0-alpha.57"
@@ -70,6 +70,22 @@
         }
       ],
       "id": "ComixTo"
+    },
+    {
+      "name": "EHentai",
+      "description": "Extension that pulls content from E-Hentai.",
+      "version": "1.0.0-alpha.1",
+      "icon": "icon.png",
+      "contentRating": "ADULT",
+      "capabilities": 101,
+      "badges": [],
+      "developers": [
+        {
+          "name": "Catta1997",
+          "github": "https://github.com/Catta1997"
+        }
+      ],
+      "id": "EHentai"
     },
     {
       "name": "MangaDemon",
