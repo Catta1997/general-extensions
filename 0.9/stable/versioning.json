@@ -1,5 +1,5 @@
 {
-  "buildTime": "2025-12-16T20:23:39.036Z",
+  "buildTime": "2026-01-11T14:55:14.112Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.57",
     "types": "1.0.0-alpha.57"
@@ -34,7 +34,7 @@
     {
       "name": "Bato.To",
       "description": "Extension that pulls content from bato.to.",
-      "version": "1.0.0-alpha.4",
+      "version": "1.0.0-alpha.5",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "ADULT",
@@ -42,7 +42,8 @@
         32,
         4,
         64,
-        1
+        1,
+        16
       ],
       "badges": [],
       "developers": [
@@ -57,7 +58,7 @@
     {
       "name": "ComixTo",
       "description": "Extension that pulls content from Comix.to.",
-      "version": "1.0.0-alpha.1",
+      "version": "1.0.0-alpha.2",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -223,7 +224,7 @@
     {
       "name": "Mgeko",
       "description": "Extension that pulls content from mgeko.cc.",
-      "version": "1.0.0-alpha.13",
+      "version": "1.0.0-alpha.14",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -244,12 +245,12 @@
       "id": "Mgeko"
     },
     {
-      "name": "Scylla Comics",
-      "description": "Extension that pulls content from scyllacomics.xyz.",
-      "version": "1.0.0-alpha.2",
+      "name": "QiScans",
+      "description": "Extension that pulls content from qiscans.org.",
+      "version": "1.0.0-alpha.1",
       "icon": "icon.png",
       "language": "en",
-      "contentRating": "ADULT",
+      "contentRating": "SAFE",
       "capabilities": [
         16,
         4,
@@ -262,7 +263,7 @@
           "name": "Lucifers Circle"
         }
       ],
-      "id": "ScyllaComics"
+      "id": "QiScans"
     },
     {
       "name": "Webtoon",
