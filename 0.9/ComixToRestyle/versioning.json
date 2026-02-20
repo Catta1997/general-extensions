@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-02-14T11:14:27.301Z",
+  "buildTime": "2026-02-20T16:57:13.820Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.57",
     "types": "1.0.0-alpha.57"
@@ -59,7 +59,7 @@
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
-      "capabilities": 101,
+      "capabilities": 117,
       "badges": [],
       "developers": [
         {
