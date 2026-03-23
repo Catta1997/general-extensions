@@ -1,6 +1,5 @@
 import {
   BasicRateLimiter,
-  CloudflareError,
   PaperbackInterceptor,
   URL,
   type Request,
@@ -15,7 +14,9 @@ import {
   type ResultFilter,
   type ChapterPages,
   DOMAIN,
+  type SectionConfig,
 } from "./models";
+import { throwCloudflareError } from "./utils";
 
 export class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -36,13 +37,7 @@ export class MainInterceptor extends PaperbackInterceptor {
   ): Promise<ArrayBuffer> {
     const cfMitigated = response.headers?.["cf-mitigated"];
     if (cfMitigated === "challenge") {
-      throw new CloudflareError({
-        url: DOMAIN,
-        method: request.method ?? "GET",
-        headers: {
-          "user-agent": await Application.getDefaultUserAgent(),
-        },
-      });
+      await throwCloudflareError();
     }
     return data;
   }
@@ -56,6 +51,35 @@ export const mainRateLimiter = new BasicRateLimiter("main", {
 
 export class ApiMaker {
   apiLink = "";
+  private async checkResponseError(request: Request, response: Response): Promise<void> {
+    switch (response.status) {
+      case 200:
+        break;
+      case 400:
+        throw new Error("400 – Bad Request: The request was invalid");
+      case 401:
+        throw new Error("401 – Unauthorized: Authentication is required");
+      case 404:
+        throw new Error(`404 – Not Found: The resource "${response.url}" was not found`);
+      case 408:
+        throw new Error("408 – Request Timeout: The server took too long to respond");
+      case 429:
+        throw new Error("429 – Too Many Requests: Rate limit exceeded");
+      case 500:
+        throw new Error("500 – Internal Server Error: A server error occurred");
+      case 502:
+        throw new Error("502 – Bad Gateway: Invalid response from upstream server");
+      case 503:
+        throw new Error("503 – Service Unavailable: The server is temporarily unavailable");
+      case 504:
+        throw new Error("504 – Gateway Timeout: Server response timed out");
+      case 403:
+        await throwCloudflareError();
+        break;
+      default:
+        throw new Error(`Unexpected HTTP error: ${response.status}`);
+    }
+  }
 
   private build(section: string, page: number): string {
     const hidden_gen = filter.getHiddenGenresSettings();
@@ -64,116 +88,109 @@ export class ApiMaker {
     const show_only = filter.getShowOnlySettings();
     const limit = filter.getLimitSettings();
     const additionalInfo = ["author"];
-    switch (section) {
-      case "popular": {
-        const url = new URL(DOMAIN)
-          .addPathComponent("api")
-          .addPathComponent("v2")
-          .addPathComponent("top");
-        url.setQueryItem("type", "trending");
-        url.setQueryItem("days", limit);
-        url.setQueryItem("limit", "15");
-        url.setQueryItem("includes[]", additionalInfo);
-        if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
-        return url.toString();
-      }
-      case "trending_manga": {
-        const url = new URL(DOMAIN)
-          .addPathComponent("api")
-          .addPathComponent("v2")
-          .addPathComponent("manga");
-        url.setQueryItem("order[views_30d]", "desc");
-        url.setQueryItem("types[]", "manga");
-        url.setQueryItem("limit", "28");
-        url.setQueryItem("release_year[from]", (new Date().getFullYear() - 1).toString());
-        url.setQueryItem("includes[]", additionalInfo);
-        url.setQueryItem("page", page.toString());
-        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
-        return url.toString();
-      }
-      case "trending_wt": {
-        const url = new URL(DOMAIN)
-          .addPathComponent("api")
-          .addPathComponent("v2")
-          .addPathComponent("manga");
-        url.setQueryItem("order[views_30d]", "desc");
-        url.setQueryItem("types[]", ["manhwa", "manhua"]);
-        url.setQueryItem("limit", "28");
-        url.setQueryItem("release_year[from]", (new Date().getFullYear() - 1).toString());
-        url.setQueryItem("includes[]", additionalInfo);
-        url.setQueryItem("page", page.toString());
-        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
-        return url.toString();
-      }
-      case "follow": {
-        const url = new URL(DOMAIN)
-          .addPathComponent("api")
-          .addPathComponent("v2")
-          .addPathComponent("top");
-        url.setQueryItem("type", "follows");
-        url.setQueryItem("days", limit);
-        url.setQueryItem("limit", "50");
-        url.setQueryItem("includes[]", additionalInfo);
-        if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
-        return url.toString();
-      }
-      case "recent": {
-        const url = new URL(DOMAIN)
-          .addPathComponent("api")
-          .addPathComponent("v2")
-          .addPathComponent("manga");
-        url.setQueryItem("order[created_at]", "desc");
-        url.setQueryItem("page", page.toString());
-        url.setQueryItem("limit", "20");
-        url.setQueryItem("includes[]", additionalInfo);
-        if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
-        return url.toString();
-      }
-      case "completed": {
-        const url = new URL(DOMAIN)
-          .addPathComponent("api")
-          .addPathComponent("v2")
-          .addPathComponent("manga");
-        url.setQueryItem("statuses[]", "finished");
-        url.setQueryItem("order[chapter_updated_at]", "desc");
-        url.setQueryItem("page", page.toString());
-        url.setQueryItem("limit", "20");
-        if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
-        return url.toString();
-      }
-      case "updatesHot": {
-        const url = new URL(DOMAIN)
-          .addPathComponent("api")
-          .addPathComponent("v2")
-          .addPathComponent("manga");
-        url.setQueryItem("order[chapter_updated_at]", "desc");
-        url.setQueryItem("page", page.toString());
-        url.setQueryItem("limit", "20");
-        url.setQueryItem("scope", "hot");
-        if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
-        return url.toString();
-      }
-      case "updatesNew": {
-        const url = new URL(DOMAIN)
-          .addPathComponent("api")
-          .addPathComponent("v2")
-          .addPathComponent("manga");
-        url.setQueryItem("order[chapter_updated_at]", "desc");
-        url.setQueryItem("page", page.toString());
-        url.setQueryItem("limit", "20");
-        url.setQueryItem("scope", "new");
-        if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
-        return url.toString();
-      }
-      default:
-        throw new Error(`${section} not found on API`);
+    const year = new Date().getFullYear();
+    const sections: Record<string, SectionConfig> = {
+      popular: {
+        path: "top",
+        query: {
+          type: "trending",
+          days: limit,
+          limit: "15",
+          "includes[]": additionalInfo,
+          ...(show_only.length > 0 && { "types[]": show_only }),
+          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+        },
+      },
+      trending_manga: {
+        path: "manga",
+        query: {
+          "order[views_30d]": "desc",
+          "types[]": "manga",
+          limit: "28",
+          "release_year[from]": (year - 1).toString(),
+          "includes[]": additionalInfo,
+          page: page.toString(),
+          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+        },
+      },
+      trending_wt: {
+        path: "manga",
+        query: {
+          "order[views_30d]": "desc",
+          "types[]": ["manhwa", "manhua"],
+          limit: "28",
+          "release_year[from]": (year - 1).toString(),
+          "includes[]": additionalInfo,
+          page: page.toString(),
+          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+        },
+      },
+      follow: {
+        path: "top",
+        query: {
+          type: "follows",
+          days: limit,
+          limit: "50",
+          "includes[]": additionalInfo,
+          ...(show_only.length > 0 && { "types[]": show_only }),
+          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+        },
+      },
+      recent: {
+        path: "manga",
+        query: {
+          "order[created_at]": "desc",
+          page: page.toString(),
+          limit: "20",
+          "includes[]": additionalInfo,
+          ...(show_only.length > 0 && { "types[]": show_only }),
+          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+        },
+      },
+      completed: {
+        path: "manga",
+        query: {
+          "statuses[]": "finished",
+          "order[chapter_updated_at]": "desc",
+          page: page.toString(),
+          limit: "20",
+          ...(show_only.length > 0 && { "types[]": show_only }),
+          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+        },
+      },
+      updatesHot: {
+        path: "manga",
+        query: {
+          "order[chapter_updated_at]": "desc",
+          page: page.toString(),
+          limit: "20",
+          scope: "hot",
+          ...(show_only.length > 0 && { "types[]": show_only }),
+          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+        },
+      },
+      updatesNew: {
+        path: "manga",
+        query: {
+          "order[chapter_updated_at]": "desc",
+          page: page.toString(),
+          limit: "20",
+          scope: "new",
+          ...(show_only.length > 0 && { "types[]": show_only }),
+          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+        },
+      },
+    };
+    const config = sections[section];
+    if (!config) throw new Error(`${section} not found on API`);
+    const url = new URL(DOMAIN)
+      .addPathComponent("api")
+      .addPathComponent("v2")
+      .addPathComponent(config.path);
+    for (const [key, value] of Object.entries(config.query)) {
+      url.setQueryItem(key, value);
     }
+    return url.toString();
   }
 
   private async getDataFromRequest(): Promise<string> {
@@ -181,7 +198,8 @@ export class ApiMaker {
       url: this.apiLink,
       method: "GET",
     };
-    const [, data] = await Application.scheduleRequest(request);
+    const [response, data] = await Application.scheduleRequest(request);
+    await this.checkResponseError(request, response);
     return Application.arrayBufferToUTF8String(data);
   }
 
@@ -196,13 +214,13 @@ export class ApiMaker {
   }
 
   async getJsonMangaInfoApi(mangaId: string) {
+    const additionalInfo = ["author", "artist", "genre", "theme", "demographic"];
     const url = new URL(DOMAIN)
       .addPathComponent("api")
       .addPathComponent("v2")
-      .addPathComponent("manga");
-    const additionalInfo = ["author", "artist", "genre", "theme", "demographic"];
-    url.addPathComponent(mangaId);
-    url.setQueryItem("includes[]", additionalInfo);
+      .addPathComponent("manga")
+      .addPathComponent(mangaId)
+      .setQueryItem("includes[]", additionalInfo);
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     try {
@@ -216,12 +234,12 @@ export class ApiMaker {
     const url = new URL(DOMAIN)
       .addPathComponent("api")
       .addPathComponent("v2")
-      .addPathComponent("manga");
-    url.addPathComponent(chapter);
-    url.addPathComponent("chapters");
-    url.setQueryItem("page", page.toString());
-    url.setQueryItem("limit", "100");
-    url.setQueryItem("order[number]", "desc");
+      .addPathComponent("manga")
+      .addPathComponent(chapter)
+      .addPathComponent("chapters")
+      .setQueryItem("page", page.toString())
+      .setQueryItem("limit", "100")
+      .setQueryItem("order[number]", "desc");
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     try {

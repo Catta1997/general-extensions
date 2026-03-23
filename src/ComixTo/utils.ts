@@ -1,6 +1,16 @@
-import type { SearchFilter } from "@paperback/types";
+import { CloudflareError, type SearchFilter } from "@paperback/types";
 import { parse } from "./main";
-import type { OptionItem } from "./models";
+import { DOMAIN, type OptionItem } from "./models";
+
+export async function throwCloudflareError(): Promise<never> {
+  throw new CloudflareError({
+    url: DOMAIN,
+    method: "GET",
+    headers: {
+      "user-agent": await Application.getDefaultUserAgent(),
+    },
+  });
+}
 
 export class globalFilters {
   genres: OptionItem[] = [];

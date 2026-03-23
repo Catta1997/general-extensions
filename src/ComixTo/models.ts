@@ -85,3 +85,8 @@ export type OptionItem = {
   value: string;
   id: string;
 };
+
+export interface SectionConfig {
+  path: string;
+  query: Record<string, string | string[]>;
+}
