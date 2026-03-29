@@ -1,5 +1,5 @@
 export const DOMAIN = "https://comix.to";
-
+export const NO_IMAGE = "https://comix.to/images/no-poster.png";
 export interface ApiResponse<T> {
   status: number;
   result: T;
