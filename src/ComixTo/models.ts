@@ -1,8 +1,17 @@
+import { URL } from "@paperback/types";
+
 export const DOMAIN = "https://comix.to";
+export const API = new URL(DOMAIN).addPathComponent("api").addPathComponent("v2");
 export const NO_IMAGE = "https://comix.to/images/no-poster.png";
+
 export interface ApiResponse<T> {
   status: number;
   result: T;
+}
+
+export interface Filters {
+  type: string;
+  filters: string[];
 }
 
 export interface ResultManga {

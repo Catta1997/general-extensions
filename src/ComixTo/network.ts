@@ -1,7 +1,6 @@
 import {
   BasicRateLimiter,
   PaperbackInterceptor,
-  URL,
   type Request,
   type Response,
 } from "@paperback/types";
@@ -14,7 +13,9 @@ import {
   type ResultFilter,
   type ChapterPages,
   DOMAIN,
+  API,
   type SectionConfig,
+  type Filters,
 } from "./models";
 import { throwCloudflareError } from "./utils";
 
@@ -183,10 +184,7 @@ export class ApiMaker {
     };
     const config = sections[section];
     if (!config) throw new Error(`${section} not found on API`);
-    const url = new URL(DOMAIN)
-      .addPathComponent("api")
-      .addPathComponent("v2")
-      .addPathComponent(config.path);
+    const url = API.addPathComponent(config.path);
     for (const [key, value] of Object.entries(config.query)) {
       url.setQueryItem(key, value);
     }
@@ -215,10 +213,7 @@ export class ApiMaker {
 
   async getJsonMangaInfoApi(mangaId: string) {
     const additionalInfo = ["author", "artist", "genre", "theme", "demographic"];
-    const url = new URL(DOMAIN)
-      .addPathComponent("api")
-      .addPathComponent("v2")
-      .addPathComponent("manga")
+    const url = API.addPathComponent("manga")
       .addPathComponent(mangaId)
       .setQueryItem("includes[]", additionalInfo);
     this.apiLink = url.toString();
@@ -231,10 +226,7 @@ export class ApiMaker {
   }
 
   async getJsonChapterApi(chapter: string, page: number) {
-    const url = new URL(DOMAIN)
-      .addPathComponent("api")
-      .addPathComponent("v2")
-      .addPathComponent("manga")
+    const url = API.addPathComponent("manga")
       .addPathComponent(chapter)
       .addPathComponent("chapters")
       .setQueryItem("page", page.toString())
@@ -252,26 +244,16 @@ export class ApiMaker {
   async getJsonSearchApi(
     keyword: string,
     page: number,
-    genres: string[],
-    themes: string[],
-    types: string[],
-    demographic: string[],
-    status: string[],
-    formats: string[],
+    filters: Filters[],
     mode: string,
     sortBy: string,
     orderBy: string,
   ) {
-    const url = new URL(DOMAIN)
-      .addPathComponent("api")
-      .addPathComponent("v2")
-      .addPathComponent("manga");
+    const url = API.addPathComponent("manga");
     if (keyword.length > 0) url.setQueryItem("keyword", keyword);
-    const allGenres = [...genres, ...themes, ...formats];
-    if (allGenres.length > 0) url.setQueryItem("genres[]", allGenres);
-    if (types.length > 0) url.setQueryItem("types[]", types);
-    if (demographic.length > 0) url.setQueryItem("demographics[]", demographic);
-    if (status.length > 0) url.setQueryItem("statuses[]", status);
+    filters.forEach((filter) => {
+      url.setQueryItem(filter.type, filter.filters);
+    });
     url.setQueryItem("page", page.toString());
     url.setQueryItem(`order[${sortBy}]`, orderBy);
     url.setQueryItem("genres_mode", mode);
@@ -285,10 +267,7 @@ export class ApiMaker {
   }
 
   async getJsonChapPagesApi(chapterId: string) {
-    const url = new URL(DOMAIN)
-      .addPathComponent("api")
-      .addPathComponent("v2")
-      .addPathComponent("chapters");
+    const url = API.addPathComponent("chapters");
     url.addPathComponent(chapterId);
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
@@ -300,10 +279,7 @@ export class ApiMaker {
   }
 
   async getFiltersApi(filter: string) {
-    const url = new URL(DOMAIN)
-      .addPathComponent("api")
-      .addPathComponent("v2")
-      .addPathComponent("terms");
+    const url = API.addPathComponent("terms");
     url.setQueryItem("limit", "100");
     url.setQueryItem("type", filter);
     this.apiLink = url.toString();

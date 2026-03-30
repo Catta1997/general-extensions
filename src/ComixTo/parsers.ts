@@ -11,7 +11,7 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
-import { type ChapterItem, type Metadata, NO_IMAGE } from "./models";
+import { type ChapterItem, type Metadata, NO_IMAGE, type Filters } from "./models";
 import { ApiMaker } from "./network";
 
 const api = new ApiMaker();
@@ -162,22 +162,27 @@ export class JsonParser {
     return { mangaId: mangaId, mangaInfo: mangaInfo };
   }
 
-  private mapTags(obj: string | Record<string, "included" | "excluded">) {
-    if (!obj || typeof obj !== "object") return [];
-    return Object.entries(obj).flatMap(([key, value]) => {
-      if (value === "included") return [key];
-      if (value === "excluded") return ["-" + key];
-      return [];
-    });
-  }
-
   async parseSearchResults(
     query: SearchQuery,
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
+    function mapTags(obj: string | Record<string, "included" | "excluded">) {
+      if (!obj || typeof obj !== "object") return [];
+      return Object.entries(obj).flatMap(([key, value]) => {
+        if (value === "included") return [key];
+        if (value === "excluded") return ["-" + key];
+        return [];
+      });
+    }
+    function buildFilter(
+      type: Filters["type"],
+      ...sources: (string | Record<string, "included" | "excluded">)[]
+    ): Filters[] {
+      const values = sources.flatMap(mapTags);
+      return values.length ? [{ type, filters: values }] : [];
+    }
     const page = metadata?.page ?? 1;
-
     const getFilterValue = (id: string) => query.filters.find((filter) => filter.id == id)?.value;
     const genres: string | Record<string, "included" | "excluded"> = getFilterValue("genres") ?? "";
     const themes: string | Record<string, "included" | "excluded"> = getFilterValue("themes") ?? "";
@@ -191,15 +196,16 @@ export class JsonParser {
     const mode: string | Record<string, "included" | "excluded"> =
       getFilterValue("filter_mode") ?? "";
     const [sortBy, orderBy] = sortingOption.id.split("$");
+    const filters: Filters[] = [
+      ...buildFilter("genres[]", genres, themes, formats),
+      ...buildFilter("types[]", types),
+      ...buildFilter("demographics[]", demographic),
+      ...buildFilter("status[]", status),
+    ];
     const search = await api.getJsonSearchApi(
       query.title,
       page,
-      this.mapTags(genres),
-      this.mapTags(themes),
-      this.mapTags(types),
-      this.mapTags(demographic),
-      this.mapTags(status),
-      this.mapTags(formats),
+      filters,
       mode as string,
       sortBy,
       orderBy,
