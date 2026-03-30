@@ -1,8 +1,9 @@
-import { URL } from "@paperback/types";
-
 export const DOMAIN = "https://comix.to";
-export const API = new URL(DOMAIN).addPathComponent("api").addPathComponent("v2");
-export const NO_IMAGE = "https://comix.to/images/no-poster.png";
+export const API = `${DOMAIN}/api/v2`;
+export const NO_IMAGE = `${DOMAIN}/images/no-poster.png`;
+
+type FilterValue = "included" | "excluded";
+export type TagMap = Record<string, FilterValue>;
 
 export interface ApiResponse<T> {
   status: number;

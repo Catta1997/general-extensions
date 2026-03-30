@@ -11,7 +11,7 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
-import { type ChapterItem, type Metadata, NO_IMAGE, type Filters } from "./models";
+import { type ChapterItem, type Metadata, NO_IMAGE, type Filters, type TagMap } from "./models";
 import { ApiMaker } from "./network";
 
 const api = new ApiMaker();
@@ -167,7 +167,7 @@ export class JsonParser {
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
-    function mapTags(obj: string | Record<string, "included" | "excluded">) {
+    function mapTags(obj: string | TagMap) {
       if (!obj || typeof obj !== "object") return [];
       return Object.entries(obj).flatMap(([key, value]) => {
         if (value === "included") return [key];
@@ -175,26 +175,20 @@ export class JsonParser {
         return [];
       });
     }
-    function buildFilter(
-      type: Filters["type"],
-      ...sources: (string | Record<string, "included" | "excluded">)[]
-    ): Filters[] {
+    function buildFilter(type: Filters["type"], ...sources: (string | TagMap)[]): Filters[] {
       const values = sources.flatMap(mapTags);
       return values.length ? [{ type, filters: values }] : [];
     }
     const page = metadata?.page ?? 1;
     const getFilterValue = (id: string) => query.filters.find((filter) => filter.id == id)?.value;
-    const genres: string | Record<string, "included" | "excluded"> = getFilterValue("genres") ?? "";
-    const themes: string | Record<string, "included" | "excluded"> = getFilterValue("themes") ?? "";
-    const types: string | Record<string, "included" | "excluded"> = getFilterValue("types") ?? "";
-    const demographic: string | Record<string, "included" | "excluded"> =
-      getFilterValue("demographic") ?? "";
-    const status: string | Record<string, "included" | "excluded"> = getFilterValue("status") ?? "";
-    const formats: string | Record<string, "included" | "excluded"> =
-      getFilterValue("formats") ?? "";
+    const genres: string | TagMap = getFilterValue("genres") ?? "";
+    const themes: string | TagMap = getFilterValue("themes") ?? "";
+    const types: string | TagMap = getFilterValue("types") ?? "";
+    const demographic: string | TagMap = getFilterValue("demographic") ?? "";
+    const status: string | TagMap = getFilterValue("status") ?? "";
+    const formats: string | TagMap = getFilterValue("formats") ?? "";
 
-    const mode: string | Record<string, "included" | "excluded"> =
-      getFilterValue("filter_mode") ?? "";
+    const mode: string | TagMap = getFilterValue("filter_mode") ?? "";
     const [sortBy, orderBy] = sortingOption.id.split("$");
     const filters: Filters[] = [
       ...buildFilter("genres[]", genres, themes, formats),

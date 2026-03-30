@@ -3,6 +3,7 @@ import {
   PaperbackInterceptor,
   type Request,
   type Response,
+  URL,
 } from "@paperback/types";
 import { filter } from "./main";
 import {
@@ -184,7 +185,7 @@ export class ApiMaker {
     };
     const config = sections[section];
     if (!config) throw new Error(`${section} not found on API`);
-    const url = API.addPathComponent(config.path);
+    const url = new URL(API).addPathComponent(config.path);
     for (const [key, value] of Object.entries(config.query)) {
       url.setQueryItem(key, value);
     }
@@ -213,7 +214,8 @@ export class ApiMaker {
 
   async getJsonMangaInfoApi(mangaId: string) {
     const additionalInfo = ["author", "artist", "genre", "theme", "demographic"];
-    const url = API.addPathComponent("manga")
+    const url = new URL(API)
+      .addPathComponent("manga")
       .addPathComponent(mangaId)
       .setQueryItem("includes[]", additionalInfo);
     this.apiLink = url.toString();
@@ -226,7 +228,8 @@ export class ApiMaker {
   }
 
   async getJsonChapterApi(chapter: string, page: number) {
-    const url = API.addPathComponent("manga")
+    const url = new URL(API)
+      .addPathComponent("manga")
       .addPathComponent(chapter)
       .addPathComponent("chapters")
       .setQueryItem("page", page.toString())
@@ -249,7 +252,7 @@ export class ApiMaker {
     sortBy: string,
     orderBy: string,
   ) {
-    const url = API.addPathComponent("manga");
+    const url = new URL(API).addPathComponent("manga");
     if (keyword.length > 0) url.setQueryItem("keyword", keyword);
     filters.forEach((filter) => {
       url.setQueryItem(filter.type, filter.filters);
@@ -267,7 +270,7 @@ export class ApiMaker {
   }
 
   async getJsonChapPagesApi(chapterId: string) {
-    const url = API.addPathComponent("chapters");
+    const url = new URL(API).addPathComponent("chapters");
     url.addPathComponent(chapterId);
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
@@ -279,7 +282,7 @@ export class ApiMaker {
   }
 
   async getFiltersApi(filter: string) {
-    const url = API.addPathComponent("terms");
+    const url = new URL(API).addPathComponent("terms");
     url.setQueryItem("limit", "100");
     url.setQueryItem("type", filter);
     this.apiLink = url.toString();
