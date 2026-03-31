@@ -77,12 +77,12 @@ export class ComiToExtension implements ComixToImplementation {
     };
     const get_trending_manga: DiscoverSection = {
       id: "trending_manga",
-      title: "Trending Manga",
+      title: `Trending Manga of ${filter.getYearSettings()}`,
       type: DiscoverSectionType.simpleCarousel,
     };
     const get_trending_wt: DiscoverSection = {
       id: "trending_wt",
-      title: "Trending WebToons",
+      title: `Trending WebToons of ${filter.getYearSettings()}`,
       type: DiscoverSectionType.simpleCarousel,
     };
     const get_completed: DiscoverSection = {

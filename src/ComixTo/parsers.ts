@@ -11,7 +11,14 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
-import { type ChapterItem, type Metadata, NO_IMAGE, type Filters, type TagMap } from "./models";
+import {
+  type ChapterItem,
+  type Metadata,
+  type Filters,
+  type TagMap,
+  DOMAIN,
+  NO_IMAGE,
+} from "./models";
 import { ApiMaker } from "./network";
 
 const api = new ApiMaker();
@@ -115,18 +122,13 @@ export class JsonParser {
   async parseMangaDetails(mangaId: string): Promise<SourceManga> {
     const info = await api.getJsonMangaInfoApi(mangaId);
     const manga = info.result;
-    const demographicArray: Tag[] = manga.demographic.map((demographic) => ({
-      id: demographic.term_id.toString(),
-      title: demographic.title,
-    }));
-    const genreArray: Tag[] = manga.genre.map((genre) => ({
-      id: genre.term_id.toString(),
-      title: genre.title,
-    }));
-    const themeArray: Tag[] = manga.theme.map((theme) => ({
-      id: theme.term_id.toString(),
-      title: theme.title,
-    }));
+    const toTag = (item: { term_id: number; title: string }): Tag => ({
+      id: item.term_id.toString(),
+      title: item.title,
+    });
+    const demographicArray: Tag[] = manga.demographic.map(toTag);
+    const genreArray: Tag[] = manga.genre.map(toTag);
+    const themeArray: Tag[] = manga.theme.map(toTag);
 
     const tags: TagSection[] = [
       {
@@ -157,7 +159,7 @@ export class JsonParser {
       author: manga.author?.map((author) => author.title).join(" ") ?? "",
       rating: manga.rated_avg / 10,
       tagGroups: tags,
-      shareUrl: `https://comix.to/title/${manga.hash_id}`,
+      shareUrl: `${DOMAIN}/title/${manga.hash_id}`,
     };
     return { mangaId: mangaId, mangaInfo: mangaInfo };
   }
@@ -167,9 +169,9 @@ export class JsonParser {
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
-    function mapTags(obj: string | TagMap) {
-      if (!obj || typeof obj !== "object") return [];
-      return Object.entries(obj).flatMap(([key, value]) => {
+    function mapTags(filter: string | TagMap) {
+      if (!filter || typeof filter !== "object") return [];
+      return Object.entries(filter).flatMap(([key, value]) => {
         if (value === "included") return [key];
         if (value === "excluded") return ["-" + key];
         return [];

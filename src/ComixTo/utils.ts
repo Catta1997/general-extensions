@@ -1,6 +1,6 @@
 import { CloudflareError, type SearchFilter } from "@paperback/types";
 import { parse } from "./main";
-import { DOMAIN, type OptionItem, type TagMap } from "./models";
+import { type OptionItem, type TagMap, DOMAIN } from "./models";
 
 export async function throwCloudflareError(): Promise<never> {
   throw new CloudflareError({
@@ -185,6 +185,12 @@ export class globalFilters {
 
   getLimitSettings() {
     return (Application.getState("limit") as string[] | undefined) ?? ["7"];
+  }
+
+  getYearSettings() {
+    return (
+      (Application.getState("year_settings") as number | undefined) ?? new Date().getFullYear() - 1
+    );
   }
 
   async updateFilters(force: boolean) {

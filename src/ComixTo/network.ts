@@ -1,22 +1,22 @@
 import {
   BasicRateLimiter,
   PaperbackInterceptor,
+  URL,
   type Request,
   type Response,
-  URL,
 } from "@paperback/types";
 import { filter } from "./main";
 import {
   type ApiResponse,
-  type ResultManga,
+  type ChapterPages,
+  type Filters,
   type MangaItem,
   type ResultChapter,
   type ResultFilter,
-  type ChapterPages,
-  DOMAIN,
-  API,
+  type ResultManga,
   type SectionConfig,
-  type Filters,
+  API,
+  DOMAIN,
 } from "./models";
 import { throwCloudflareError } from "./utils";
 
@@ -58,49 +58,57 @@ export class ApiMaker {
       case 200:
         break;
       case 400:
-        throw new Error("400 – Bad Request: The request was invalid");
+        throw new Error("400 – Bad Request: The request was invalid", { cause: "Client" });
       case 401:
-        throw new Error("401 – Unauthorized: Authentication is required");
+        throw new Error("401 – Unauthorized: Authentication is required", { cause: "Client" });
       case 404:
-        throw new Error(`404 – Not Found: The resource "${response.url}" was not found`);
+        throw new Error(`404 – Not Found: The resource "${response.url}" was not found`, {
+          cause: "Client",
+        });
       case 408:
-        throw new Error("408 – Request Timeout: The server took too long to respond");
+        throw new Error("408 – Request Timeout: The server took too long to respond", {
+          cause: "Client",
+        });
       case 429:
-        throw new Error("429 – Too Many Requests: Rate limit exceeded");
+        throw new Error("429 – Too Many Requests: Rate limit exceeded", { cause: "Client" });
       case 500:
-        throw new Error("500 – Internal Server Error: A server error occurred");
+        throw new Error("500 – Internal Server Error: A server error occurred", {
+          cause: "Server",
+        });
       case 502:
-        throw new Error("502 – Bad Gateway: Invalid response from upstream server");
+        throw new Error("502 – Bad Gateway: Invalid response from upstream server", {
+          cause: "Server",
+        });
       case 503:
-        throw new Error("503 – Service Unavailable: The server is temporarily unavailable");
+        throw new Error("503 – Service Unavailable: The server is temporarily unavailable", {
+          cause: "Server",
+        });
       case 504:
-        throw new Error("504 – Gateway Timeout: Server response timed out");
+        throw new Error("504 – Gateway Timeout: Server response timed out", { cause: "Server" });
       case 403:
         await throwCloudflareError();
         break;
       default:
-        throw new Error(`Unexpected HTTP error: ${response.status}`);
+        throw new Error(`Unexpected HTTP error: ${response.status}`, { cause: "Unknown" });
     }
   }
 
   private build(section: string, page: number): string {
-    const hidden_gen = filter.getHiddenGenresSettings();
-    const hidden_them = filter.getHiddenThemesSettings();
-    const allGenres = [...hidden_gen, ...hidden_them];
-    const show_only = filter.getShowOnlySettings();
-    const limit = filter.getLimitSettings();
+    const hiddenGenres = [...filter.getHiddenGenresSettings(), ...filter.getHiddenThemesSettings()];
+    const types = filter.getShowOnlySettings();
+    const days = filter.getLimitSettings()[0];
     const additionalInfo = ["author"];
-    const year = new Date().getFullYear();
+    const year = filter.getYearSettings();
     const sections: Record<string, SectionConfig> = {
       popular: {
         path: "top",
         query: {
           type: "trending",
-          days: limit,
+          days: days,
           limit: "15",
           "includes[]": additionalInfo,
-          ...(show_only.length > 0 && { "types[]": show_only }),
-          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+          ...(types.length > 0 && { "types[]": types }),
+          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
       trending_manga: {
@@ -109,10 +117,10 @@ export class ApiMaker {
           "order[views_30d]": "desc",
           "types[]": "manga",
           limit: "28",
-          "release_year[from]": (year - 1).toString(),
+          "release_year[from]": year.toString(),
           "includes[]": additionalInfo,
           page: page.toString(),
-          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
       trending_wt: {
@@ -121,21 +129,21 @@ export class ApiMaker {
           "order[views_30d]": "desc",
           "types[]": ["manhwa", "manhua"],
           limit: "28",
-          "release_year[from]": (year - 1).toString(),
+          "release_year[from]": year.toString(),
           "includes[]": additionalInfo,
           page: page.toString(),
-          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
       follow: {
         path: "top",
         query: {
           type: "follows",
-          days: limit,
+          days: days,
           limit: "50",
           "includes[]": additionalInfo,
-          ...(show_only.length > 0 && { "types[]": show_only }),
-          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+          ...(types.length > 0 && { "types[]": types }),
+          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
       recent: {
@@ -145,8 +153,8 @@ export class ApiMaker {
           page: page.toString(),
           limit: "20",
           "includes[]": additionalInfo,
-          ...(show_only.length > 0 && { "types[]": show_only }),
-          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+          ...(types.length > 0 && { "types[]": types }),
+          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
       completed: {
@@ -156,8 +164,8 @@ export class ApiMaker {
           "order[chapter_updated_at]": "desc",
           page: page.toString(),
           limit: "20",
-          ...(show_only.length > 0 && { "types[]": show_only }),
-          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+          ...(types.length > 0 && { "types[]": types }),
+          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
       updatesHot: {
@@ -167,8 +175,8 @@ export class ApiMaker {
           page: page.toString(),
           limit: "20",
           scope: "hot",
-          ...(show_only.length > 0 && { "types[]": show_only }),
-          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+          ...(types.length > 0 && { "types[]": types }),
+          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
       updatesNew: {
@@ -178,8 +186,8 @@ export class ApiMaker {
           page: page.toString(),
           limit: "20",
           scope: "new",
-          ...(show_only.length > 0 && { "types[]": show_only }),
-          ...(allGenres.length > 0 && { "exclude_genres[]": allGenres }),
+          ...(types.length > 0 && { "types[]": types }),
+          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
     };
@@ -192,6 +200,13 @@ export class ApiMaker {
     return url.toString();
   }
 
+  private JSONParser<T>(html: string) {
+    try {
+      return JSON.parse(html) as ApiResponse<T>;
+    } catch {
+      throw new Error("Json parse failed");
+    }
+  }
   private async getDataFromRequest(): Promise<string> {
     const request = {
       url: this.apiLink,
@@ -205,11 +220,7 @@ export class ApiMaker {
   async getJsonMangaApi(section: string, page: number) {
     this.apiLink = this.build(section, page);
     const html = await this.getDataFromRequest();
-    try {
-      return JSON.parse(html) as ApiResponse<ResultManga>;
-    } catch {
-      throw new Error("Json parse failed");
-    }
+    return this.JSONParser<ResultManga>(html);
   }
 
   async getJsonMangaInfoApi(mangaId: string) {
@@ -220,11 +231,7 @@ export class ApiMaker {
       .setQueryItem("includes[]", additionalInfo);
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
-    try {
-      return JSON.parse(html) as ApiResponse<MangaItem>;
-    } catch {
-      throw new Error("Json parse failed");
-    }
+    return this.JSONParser<MangaItem>(html);
   }
 
   async getJsonChapterApi(chapter: string, page: number) {
@@ -237,11 +244,7 @@ export class ApiMaker {
       .setQueryItem("order[number]", "desc");
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
-    try {
-      return JSON.parse(html) as ApiResponse<ResultChapter>;
-    } catch {
-      throw new Error("Json parse failed");
-    }
+    return this.JSONParser<ResultChapter>(html);
   }
 
   async getJsonSearchApi(
@@ -262,11 +265,7 @@ export class ApiMaker {
     url.setQueryItem("genres_mode", mode);
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
-    try {
-      return JSON.parse(html) as ApiResponse<ResultManga>;
-    } catch {
-      throw new Error("Json parse failed");
-    }
+    return this.JSONParser<ResultManga>(html);
   }
 
   async getJsonChapPagesApi(chapterId: string) {
@@ -274,11 +273,7 @@ export class ApiMaker {
     url.addPathComponent(chapterId);
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
-    try {
-      return JSON.parse(html) as ApiResponse<ChapterPages>;
-    } catch {
-      throw new Error("Json parse failed");
-    }
+    return this.JSONParser<ChapterPages>(html);
   }
 
   async getFiltersApi(filter: string) {
@@ -287,10 +282,6 @@ export class ApiMaker {
     url.setQueryItem("type", filter);
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
-    try {
-      return JSON.parse(html) as ApiResponse<ResultFilter>;
-    } catch {
-      throw new Error("Json parse failed");
-    }
+    return this.JSONParser<ResultFilter>(html);
   }
 }
