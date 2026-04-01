@@ -54,7 +54,6 @@ class SectionSettings extends BaseSettings {
       Section(
         {
           id: "timeRangeSection",
-          footer: "Time Range Settings",
         },
         [
           SelectRow("timeRange", {
@@ -75,7 +74,6 @@ class SectionSettings extends BaseSettings {
       Section(
         {
           id: "yearSettingsSection",
-          footer: "Year Settings",
         },
         [
           StepperRow("yearSettings", {

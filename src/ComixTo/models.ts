@@ -5,6 +5,11 @@ export const NO_IMAGE = `${DOMAIN}/images/no-poster.png`;
 type FilterValue = "included" | "excluded";
 export type TagMap = Record<string, FilterValue>;
 
+export interface ApiRequestConfig {
+  path: string | string[];
+  query?: Record<string, string | string[]>;
+}
+
 export interface ApiResponse<T> {
   status: number;
   result: T;
@@ -95,8 +100,3 @@ export type OptionItem = {
   value: string;
   id: string;
 };
-
-export interface SectionConfig {
-  path: string;
-  query: Record<string, string | string[]>;
-}

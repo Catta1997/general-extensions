@@ -8,13 +8,13 @@ import {
 import { filter } from "./main";
 import {
   type ApiResponse,
+  type ApiRequestConfig,
   type ChapterPages,
   type Filters,
   type MangaItem,
   type ResultChapter,
   type ResultFilter,
   type ResultManga,
-  type SectionConfig,
   API,
   DOMAIN,
 } from "./models";
@@ -33,7 +33,7 @@ export class MainInterceptor extends PaperbackInterceptor {
   }
 
   override async interceptResponse(
-    request: Request,
+    _: Request,
     response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
@@ -53,7 +53,7 @@ export const mainRateLimiter = new BasicRateLimiter("main", {
 
 export class ApiMaker {
   apiLink = "";
-  private async checkResponseError(request: Request, response: Response): Promise<void> {
+  private async checkResponseError(_: Request, response: Response): Promise<void> {
     switch (response.status) {
       case 200:
         break;
@@ -93,13 +93,27 @@ export class ApiMaker {
     }
   }
 
-  private build(section: string, page: number): string {
+  private async APIJson<T>(api: ApiRequestConfig): Promise<ApiResponse<T>> {
+    const url = new URL(API);
+    const paths = Array.isArray(api.path) ? api.path : [api.path];
+    paths.forEach((p) => url.addPathComponent(p));
+    if (api.query) {
+      for (const [key, value] of Object.entries(api.query)) {
+        url.setQueryItem(key, value);
+      }
+    }
+    this.apiLink = url.toString();
+    const html = await this.getDataFromRequest();
+    return this.JSONParser<T>(html);
+  }
+
+  private build<T>(section: string, page: number): Promise<ApiResponse<T>> {
     const hiddenGenres = [...filter.getHiddenGenresSettings(), ...filter.getHiddenThemesSettings()];
     const types = filter.getShowOnlySettings();
     const days = filter.getLimitSettings()[0];
     const additionalInfo = ["author"];
     const year = filter.getYearSettings();
-    const sections: Record<string, SectionConfig> = {
+    const sections: Record<string, ApiRequestConfig> = {
       popular: {
         path: "top",
         query: {
@@ -193,11 +207,7 @@ export class ApiMaker {
     };
     const config = sections[section];
     if (!config) throw new Error(`${section} not found on API`);
-    const url = new URL(API).addPathComponent(config.path);
-    for (const [key, value] of Object.entries(config.query)) {
-      url.setQueryItem(key, value);
-    }
-    return url.toString();
+    return this.APIJson<T>({ path: config.path, query: config.query });
   }
 
   private JSONParser<T>(html: string) {
@@ -218,33 +228,27 @@ export class ApiMaker {
   }
 
   async getJsonMangaApi(section: string, page: number) {
-    this.apiLink = this.build(section, page);
-    const html = await this.getDataFromRequest();
-    return this.JSONParser<ResultManga>(html);
+    return this.build<ResultManga>(section, page);
   }
 
   async getJsonMangaInfoApi(mangaId: string) {
-    const additionalInfo = ["author", "artist", "genre", "theme", "demographic"];
-    const url = new URL(API)
-      .addPathComponent("manga")
-      .addPathComponent(mangaId)
-      .setQueryItem("includes[]", additionalInfo);
-    this.apiLink = url.toString();
-    const html = await this.getDataFromRequest();
-    return this.JSONParser<MangaItem>(html);
+    return this.APIJson<MangaItem>({
+      path: ["manga", mangaId],
+      query: {
+        "includes[]": ["author", "artist", "genre", "theme", "demographic"],
+      },
+    });
   }
 
   async getJsonChapterApi(chapter: string, page: number) {
-    const url = new URL(API)
-      .addPathComponent("manga")
-      .addPathComponent(chapter)
-      .addPathComponent("chapters")
-      .setQueryItem("page", page.toString())
-      .setQueryItem("limit", "100")
-      .setQueryItem("order[number]", "desc");
-    this.apiLink = url.toString();
-    const html = await this.getDataFromRequest();
-    return this.JSONParser<ResultChapter>(html);
+    return this.APIJson<ResultChapter>({
+      path: ["manga", chapter, "chapters"],
+      query: {
+        page: page.toString(),
+        limit: "100",
+        "order[number]": "desc",
+      },
+    });
   }
 
   async getJsonSearchApi(
@@ -255,33 +259,31 @@ export class ApiMaker {
     sortBy: string,
     orderBy: string,
   ) {
-    const url = new URL(API).addPathComponent("manga");
-    if (keyword.length > 0) url.setQueryItem("keyword", keyword);
-    filters.forEach((filter) => {
-      url.setQueryItem(filter.type, filter.filters);
+    const query: Record<string, string | string[]> = {
+      page: page.toString(),
+      [`order[${sortBy}]`]: orderBy,
+      genres_mode: mode,
+    };
+    if (keyword.length > 0) {
+      query.keyword = keyword;
+    }
+    filters.forEach((f) => {
+      query[f.type] = f.filters;
     });
-    url.setQueryItem("page", page.toString());
-    url.setQueryItem(`order[${sortBy}]`, orderBy);
-    url.setQueryItem("genres_mode", mode);
-    this.apiLink = url.toString();
-    const html = await this.getDataFromRequest();
-    return this.JSONParser<ResultManga>(html);
+    return this.APIJson<ResultManga>({ path: "manga", query: query });
   }
 
   async getJsonChapPagesApi(chapterId: string) {
-    const url = new URL(API).addPathComponent("chapters");
-    url.addPathComponent(chapterId);
-    this.apiLink = url.toString();
-    const html = await this.getDataFromRequest();
-    return this.JSONParser<ChapterPages>(html);
+    return this.APIJson<ChapterPages>({ path: ["chapters", chapterId] });
   }
 
   async getFiltersApi(filter: string) {
-    const url = new URL(API).addPathComponent("terms");
-    url.setQueryItem("limit", "100");
-    url.setQueryItem("type", filter);
-    this.apiLink = url.toString();
-    const html = await this.getDataFromRequest();
-    return this.JSONParser<ResultFilter>(html);
+    return this.APIJson<ResultFilter>({
+      path: "terms",
+      query: {
+        limit: "100",
+        type: filter,
+      },
+    });
   }
 }
