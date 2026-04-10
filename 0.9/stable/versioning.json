@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-03-22T16:34:52.664Z",
+  "buildTime": "2026-04-10T07:09:53.805Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.64",
     "types": "1.0.0-alpha.64"
@@ -34,7 +34,7 @@
     {
       "name": "ComixTo",
       "description": "Extension that pulls content from Comix.to.",
-      "version": "1.0.0-alpha.12",
+      "version": "1.0.0-alpha.13",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -243,8 +243,8 @@
     },
     {
       "name": "QiScans",
-      "description": "Extension that pulls content from qiscans.org.",
-      "version": "1.0.0-alpha.11",
+      "description": "Extension that pulls content from qimanhwa.com.",
+      "version": "1.0.0-alpha.12",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -300,28 +300,6 @@
         }
       ],
       "id": "WeebCentral"
-    },
-    {
-      "name": "WeebDex",
-      "description": "Extension that pulls content from weebdex.org.",
-      "version": "1.0.0-alpha.8",
-      "icon": "icon.png",
-      "language": "en",
-      "contentRating": "MATURE",
-      "capabilities": [
-        16,
-        4,
-        1,
-        64,
-        32
-      ],
-      "badges": [],
-      "developers": [
-        {
-          "name": "Lucifers Circle"
-        }
-      ],
-      "id": "WeebDex"
     }
   ]
 }
