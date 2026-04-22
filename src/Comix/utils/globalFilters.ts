@@ -213,3 +213,30 @@ export class globalFilters {
     Application.setState(JSON.stringify(newValue), "format");
   }
 }
+export function getYearTimesChange() {
+  Application.invalidateDiscoverSections();
+  return (Application.getState("yearTimes") as string[] | undefined) ?? ["year"];
+}
+
+export function getYearFilterActiveStatus() {
+  return getYearTimesChange()[0] === "year";
+}
+
+export const discoverySections = [
+  { id: "popular", title: "Popular" },
+  { id: "follow", title: "Most Follows New Comics" },
+  { id: "trending_manga", title: "Trending Manga" },
+  { id: "trending_wt", title: "Trending WebToons" },
+  { id: "updatesHot", title: "Latest Updates HOT" },
+  { id: "updatesNew", title: "Latest Updates NEW" },
+  { id: "completed", title: "Completed" },
+  { id: "genres_section", title: "Best of Genres" },
+];
+
+export const yearFilter: {
+  id: string;
+  title: string;
+}[] = [
+  { id: "year", title: "Of an year" },
+  { id: "allTimes", title: "All the Time" },
+];

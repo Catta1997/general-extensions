@@ -24,6 +24,7 @@ import {
 } from "./models";
 
 import { ComixHash } from "./utils/comixHash";
+import { getYearFilterActiveStatus } from "./utils/globalFilters";
 
 export class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -107,10 +108,12 @@ export class ApiMaker {
           "order[views_30d]": "desc",
           "types[]": "manga",
           limit: "28",
-          "release_year[from]": year.toString(),
           "includes[]": additionalInfo,
           page: page.toString(),
           ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(getYearFilterActiveStatus() && {
+            "release_year[from]": year.toString(),
+          }),
         },
       },
       trending_wt: {
@@ -119,10 +122,12 @@ export class ApiMaker {
           "order[views_30d]": "desc",
           "types[]": ["manhwa", "manhua"],
           limit: "28",
-          "release_year[from]": year.toString(),
           "includes[]": additionalInfo,
           page: page.toString(),
           ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(getYearFilterActiveStatus() && {
+            "release_year[from]": year.toString(),
+          }),
         },
       },
       follow: {

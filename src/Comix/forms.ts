@@ -1,8 +1,47 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ButtonRow, Form, NavigationRow, Section, SelectRow, StepperRow } from "@paperback/types";
+import {
+  ButtonRow,
+  EditSection,
+  Form,
+  NavigationRow,
+  Section,
+  SelectRow,
+  type FormSectionElement,
+  StepperRow,
+  FormConfirmationError,
+  LabelRow,
+  type FormItemElement,
+} from "@paperback/types";
 import { filter } from "./main";
+import {
+  discoverySections,
+  getYearFilterActiveStatus,
+  getYearTimesChange,
+  yearFilter,
+} from "./utils/globalFilters";
+
+function getDeletedDiscoverySections() {
+  return (
+    (Application.getState("deleted_sections") as { id: string; title: string }[] | undefined) ?? []
+  );
+}
+
+async function setDiscoverySections(newValue: { id: string; title: string }[]) {
+  Application.setState(newValue, "sections");
+}
+
+async function setDeletedDiscoverySections(newValue: { id: string; title: string }[]) {
+  Application.setState(newValue, "deleted_sections");
+}
+
+export function getDiscoverySectionsOrder() {
+  return (
+    (Application.getState("sections") as { id: string; title: string }[] | undefined) ??
+    discoverySections
+  );
+}
 
 abstract class BaseSettings extends Form {
   protected async updateValue<T>(value: T, id: string): Promise<void> {
@@ -10,6 +49,120 @@ abstract class BaseSettings extends Form {
     Application.invalidateSearchFilters();
     Application.invalidateDiscoverSections();
     this.reloadForm();
+  }
+}
+
+class EditableListTestForm extends Form {
+  override getSections() {
+    const onReorderSelectorId = Application.Selector(this as EditableListTestForm, "rowDidReorder");
+    const onDeletionSelectorId = Application.Selector(this as EditableListTestForm, "rowDidDelete");
+
+    return [
+      {
+        ...EditSection("edit", {
+          id: "edit",
+          footer: "Long press to reorder, swipe to hide",
+          items: getDiscoverySectionsOrder().map((item) => this.itemRow(item)),
+        }),
+        allowDeletion: true,
+        allowReorder: true,
+        onReorder: onReorderSelectorId,
+        onDeletion: onDeletionSelectorId,
+      } as unknown as FormSectionElement<unknown>,
+      new AddSectionSelect().getDeletedSections(),
+      Section("status", [
+        ButtonRow("reset", {
+          title: "Reset all Sections",
+          isHidden: getDeletedDiscoverySections().length == 0,
+          onSelect: Application.Selector(this as EditableListTestForm, "resetFiltersDialog"),
+        }),
+      ]),
+    ];
+  }
+  async resetFiltersDialog() {
+    throw new FormConfirmationError(
+      Application.Selector(this as EditableListTestForm, "handleLimitStatusChangeReset"),
+      "Do you want to restore all deleted sections?",
+    );
+  }
+  async handleLimitStatusChangeReset(): Promise<void> {
+    await setDiscoverySections(discoverySections);
+    await setDeletedDiscoverySections([]);
+    this.reloadForm();
+  }
+  private itemRow(item: { id: string; title: string }): FormItemElement<unknown> {
+    return LabelRow(item.id, {
+      title: item.title,
+    });
+  }
+
+  async rowDidDelete(index: number): Promise<void> {
+    const items = getDeletedDiscoverySections();
+    const sections = getDiscoverySectionsOrder();
+    const deleted = sections.splice(index, 1);
+    deleted.forEach((item) => {
+      items.push(item);
+    });
+    await setDeletedDiscoverySections(items);
+    await setDiscoverySections(sections);
+    this.reloadForm();
+  }
+
+  async rowDidReorder(sourceIndex: number, destinationIndex: number): Promise<void> {
+    const sections = getDiscoverySectionsOrder();
+    const [item] = sections.splice(sourceIndex, 1);
+    if (item) {
+      sections.splice(destinationIndex, 0, item);
+    }
+    await setDiscoverySections(sections);
+    this.reloadForm();
+    Application.invalidateDiscoverSections();
+  }
+}
+
+class AddSectionSelect {
+  onSelectLabelProxy = new Proxy(this, {
+    has(target, p) {
+      if (typeof p == "string" && p.startsWith("onSelect_")) {
+        return true;
+      } else {
+        return Object.hasOwn(target, p);
+      }
+    },
+    get(target, p) {
+      if (typeof p == "string" && p.startsWith("onSelect_")) {
+        const rowId = p.slice(9);
+        return async () => {
+          await target["onSelect"](rowId);
+        };
+      } else {
+        // @ts-ignore
+        return target[p];
+      }
+    },
+  });
+
+  deletedForms = getDeletedDiscoverySections();
+  getDeletedSections(): FormSectionElement<unknown> {
+    return Section(
+      { id: "addSectionSelect", footer: "Tap to restore" },
+      this.deletedForms.flatMap((item) =>
+        LabelRow(item.id, {
+          title: item.title,
+          // @ts-expect-error
+          onSelect: Application.Selector(this.onSelectLabelProxy, "onSelect_" + item.id),
+        }),
+      ),
+    );
+  }
+
+  async onSelect(rowId: string): Promise<void> {
+    const sections = getDiscoverySectionsOrder();
+    const selectedDeletedItems = this.deletedForms.filter((item) => item.id === rowId);
+    sections.push(selectedDeletedItems[0]);
+    await setDiscoverySections(sections);
+    await setDeletedDiscoverySections(this.deletedForms.filter((item) => item.id !== rowId));
+    this.deletedForms = getDeletedDiscoverySections();
   }
 }
 
@@ -62,7 +215,7 @@ class SectionSettings extends BaseSettings {
           }),
           ButtonRow("reset_time", {
             title: "Reset to Default Value",
-            onSelect: Application.Selector(this as SectionSettings, "handleLimitStatusChangeReset"),
+            onSelect: Application.Selector(this as SectionSettings, "resetFiltersDialog"),
           }),
         ],
       ),
@@ -71,6 +224,20 @@ class SectionSettings extends BaseSettings {
           id: "yearSettingsSection",
         },
         [
+          NavigationRow("Contents", {
+            title: "Contents",
+            subtitle: "Contents Tags Settings",
+            form: new EditableListTestForm(),
+          }),
+          SelectRow("allTimes", {
+            title: "Home Sections Type",
+            subtitle: "Choose is sections should use an year or not",
+            value: getYearTimesChange(),
+            minItemCount: 1,
+            maxItemCount: 1,
+            options: yearFilter,
+            onValueChange: Application.Selector(this as SectionSettings, "handleYearTimesChange"),
+          }),
           StepperRow("yearSettings", {
             title: "Year",
             subtitle: "Choose year used on some home section",
@@ -80,6 +247,7 @@ class SectionSettings extends BaseSettings {
             stepValue: 1,
             loopOver: false,
             onValueChange: Application.Selector(this as SectionSettings, "handleYearStatusChange"),
+            isHidden: !getYearFilterActiveStatus(),
           }),
         ],
       ),
@@ -95,8 +263,17 @@ class SectionSettings extends BaseSettings {
   async handleLimitStatusChange(id: string[]): Promise<void> {
     await this.updateValue(id, "limit");
   }
+  async resetFiltersDialog() {
+    throw new FormConfirmationError(
+      Application.Selector(this as SectionSettings, "handleLimitStatusChangeReset"),
+      "Do you want to reset this to the default value?",
+    );
+  }
   async handleLimitStatusChangeReset(): Promise<void> {
     await this.updateValue(["1"], "limit");
+  }
+  async handleYearTimesChange(id: string[]): Promise<void> {
+    await this.updateValue(id, "yearTimes");
   }
 }
 
@@ -195,7 +372,7 @@ class FilterSettings extends BaseSettings {
         [
           ButtonRow("reset_genres", {
             title: "Reset all Filters",
-            onSelect: Application.Selector(this as FilterSettings, "resetFilters"),
+            onSelect: Application.Selector(this as FilterSettings, "resetFiltersDialog"),
           }),
         ],
       ),
@@ -217,7 +394,12 @@ class FilterSettings extends BaseSettings {
   async handleShowOnlyStatusChange(id: string[]) {
     await this.updateValue(id, "show_only");
   }
-
+  async resetFiltersDialog() {
+    throw new FormConfirmationError(
+      Application.Selector(this as FilterSettings, "resetFilters"),
+      "Do you want to reset all values?",
+    );
+  }
   async resetFilters() {
     await this.updateValue([], "hide_genres");
     await this.updateValue([], "hide_themes");

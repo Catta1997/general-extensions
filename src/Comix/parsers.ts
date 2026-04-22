@@ -23,6 +23,7 @@ import {
   NO_IMAGE,
 } from "./models";
 import { ApiMaker } from "./network";
+import { filter } from "./main";
 
 const api = new ApiMaker();
 export class JsonParser {
@@ -52,7 +53,56 @@ export class JsonParser {
       metadata: section === "follow" || section === "popular" ? undefined : { page: page + 1 },
     };
   }
-
+  async parseGenreSection(
+    metadata: Metadata,
+  ): Promise<{ items: DiscoverSectionItem[]; metadata: Metadata }> {
+    await filter.updateFilters(true);
+    const allGenres: DiscoverSectionItem[] = [];
+    const getExcludedTypesObject = Object.fromEntries(
+      filter.getHiddenThemesSettings().map((item) => [item, "excluded" as const]),
+    ) as Record<string, "included" | "excluded">;
+    const getExcludedDemogObject = Object.fromEntries(
+      filter.getHiddenDemogSettings().map((item) => [item, "excluded" as const]),
+    ) as Record<string, "included" | "excluded">;
+    filter.genres
+      .filter((filterName) => {
+        return !filter.getHiddenGenresSettings().includes(filterName.id);
+      })
+      .forEach((filterItem) => {
+        const getExcludedGenreObject = {
+          ...Object.fromEntries(
+            filter.getHiddenGenresSettings().map((item) => [item, "excluded" as const]),
+          ),
+          [filterItem.id]: "included" as const,
+        } as Record<string, "included" | "excluded">;
+        allGenres.push({
+          type: "genresCarouselItem",
+          searchQuery: {
+            title: "",
+            filters: [
+              {
+                id: "genres",
+                value: getExcludedGenreObject,
+              },
+              {
+                id: "themes",
+                value: getExcludedTypesObject,
+              },
+              {
+                id: "demographic",
+                value: getExcludedDemogObject,
+              },
+            ],
+          },
+          name: filterItem.value,
+          metadata: metadata,
+        });
+      });
+    return {
+      items: allGenres,
+      metadata: metadata,
+    };
+  }
   async parseSectionChUp(section: string, metadata: Metadata) {
     const latest: DiscoverSectionItem[] = [];
     const page = metadata?.page ?? 1;

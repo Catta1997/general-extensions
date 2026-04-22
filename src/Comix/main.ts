@@ -24,11 +24,11 @@ import {
   type SortingOption,
   type SourceManga,
 } from "@paperback/types";
-import { MainSettings } from "./forms";
+import { getDiscoverySectionsOrder, MainSettings } from "./forms";
 import type { Metadata } from "./models";
 import { MainInterceptor, mainRateLimiter } from "./network";
 import { JsonParser } from "./parsers";
-import { globalFilters } from "./utils/globalFilters";
+import { getYearFilterActiveStatus, globalFilters } from "./utils/globalFilters";
 
 type ComixImplementation = SettingsFormProviding &
   Extension &
@@ -62,56 +62,56 @@ export class ComixExtension implements ComixImplementation {
     }
   }
   async getDiscoverSections(): Promise<DiscoverSection[]> {
-    const get_popular: DiscoverSection = {
-      id: "popular",
-      title: "Popular",
-      type: DiscoverSectionType.featured,
+    const allSections: Record<string, DiscoverSection> = {
+      popular: {
+        id: "popular",
+        title: "Popular",
+        type: DiscoverSectionType.featured,
+      },
+      follow: {
+        id: "follow",
+        title: "Most Follows New Comics",
+        type: DiscoverSectionType.prominentCarousel,
+      },
+      recent: {
+        id: "recent",
+        title: "Recently Added",
+        type: DiscoverSectionType.simpleCarousel,
+      },
+      trending_manga: {
+        id: "trending_manga",
+        title: `Trending Manga${getYearFilterActiveStatus() ? " of " + filter.getYearSettings() : ""}`,
+        type: DiscoverSectionType.simpleCarousel,
+      },
+      trending_wt: {
+        id: "trending_wt",
+        title: `Trending WebToons${getYearFilterActiveStatus() ? " of " + filter.getYearSettings() : ""}`,
+        type: DiscoverSectionType.simpleCarousel,
+      },
+      completed: {
+        id: "completed",
+        title: "Completed",
+        type: DiscoverSectionType.simpleCarousel,
+      },
+      updatesHot: {
+        id: "updatesHot",
+        title: "Latest Updates (HOT)",
+        type: DiscoverSectionType.chapterUpdates,
+      },
+      updatesNew: {
+        id: "updatesNew",
+        title: "Latest Updates (NEW)",
+        type: DiscoverSectionType.chapterUpdates,
+      },
+      genres_section: {
+        id: "genres_section",
+        title: "Best of genres",
+        type: DiscoverSectionType.genres,
+      },
     };
-    const get_follow: DiscoverSection = {
-      id: "follow",
-      title: "Most Follows New Comics",
-      type: DiscoverSectionType.prominentCarousel,
-    };
-    const get_recent: DiscoverSection = {
-      id: "recent",
-      title: "Recently Added",
-      type: DiscoverSectionType.simpleCarousel,
-    };
-    const get_trending_manga: DiscoverSection = {
-      id: "trending_manga",
-      title: `Trending Manga of ${filter.getYearSettings()}`,
-      type: DiscoverSectionType.simpleCarousel,
-    };
-    const get_trending_wt: DiscoverSection = {
-      id: "trending_wt",
-      title: `Trending WebToons of ${filter.getYearSettings()}`,
-      type: DiscoverSectionType.simpleCarousel,
-    };
-    const get_completed: DiscoverSection = {
-      id: "completed",
-      title: "Completed",
-      type: DiscoverSectionType.simpleCarousel,
-    };
-    const get_updatesHot: DiscoverSection = {
-      id: "updatesHot",
-      title: "Latest Updates (HOT)",
-      type: DiscoverSectionType.chapterUpdates,
-    };
-    const get_updatesNew: DiscoverSection = {
-      id: "updatesNew",
-      title: "Latest Updates (NEW)",
-      type: DiscoverSectionType.chapterUpdates,
-    };
-    return [
-      get_popular,
-      get_recent,
-      get_follow,
-      get_trending_manga,
-      get_trending_wt,
-      get_completed,
-      get_updatesHot,
-      get_updatesNew,
-    ];
+    return getDiscoverySectionsOrder()
+      .map((key) => allSections[key.id])
+      .filter(Boolean);
   }
 
   async getDiscoverSectionItems(
@@ -135,6 +135,8 @@ export class ComixExtension implements ComixImplementation {
         return await parse.parseSectionChUp("updatesNew", metadata);
       case "updatesHot":
         return await parse.parseSectionChUp("updatesHot", metadata);
+      case "genres_section":
+        return await parse.parseGenreSection(metadata);
       default:
         return { items: [] };
     }
@@ -149,8 +151,15 @@ export class ComixExtension implements ComixImplementation {
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
-    sortingOption.id = sortingOption.id.split(query.title.length > 1 ? "#title" : "#empty")[0];
-    return parse.parseSearchResults(query, metadata, sortingOption);
+    let sorting = sortingOption;
+    if (sorting === undefined) {
+      sorting = {
+        id: "views_30d$desc#empty",
+        label: "Any",
+      };
+    }
+    sorting.id = sorting.id.split(query.title.length > 1 ? "#title" : "#empty")[0];
+    return parse.parseSearchResults(query, metadata, sorting);
   }
   async getSortingOptions(query: SearchQuery): Promise<SortingOption[]> {
     const idSuffix = query.title.length > 1 ? "#title" : "";
@@ -166,10 +175,10 @@ export class ComixExtension implements ComixImplementation {
       { id: "year$desc" + idSuffix, label: "Year ↓" },
       { id: "score$asc" + idSuffix, label: "Average Score ↑" },
       { id: "score$desc" + idSuffix, label: "Average Score ↓" },
-      { id: "total_views$asc" + idSuffix, label: "Total Views ↑" },
-      { id: "total_views$desc" + idSuffix, label: "Total Views ↓" },
-      { id: "followed_count$asc" + idSuffix, label: "Most Follows ↑" },
-      { id: "followed_count$desc" + idSuffix, label: "Most Follows ↓" },
+      { id: "views_total$asc" + idSuffix, label: "Total Views ↑" },
+      { id: "views_totals$desc" + idSuffix, label: "Total Views ↓" },
+      { id: "follows_total$asc" + idSuffix, label: "Most Follows ↑" },
+      { id: "follows_total$desc" + idSuffix, label: "Most Follows ↓" },
       { id: "views_7d$asc" + idSuffix, label: "Most Views 7 Days ↑" },
       { id: "views_7d$desc" + idSuffix, label: "Most Views 7 Days ↓" },
       { id: "views_30d$asc" + idSuffix, label: "Most Views 1 Month ↑" },
