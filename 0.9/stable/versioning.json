@@ -1,8 +1,8 @@
 {
-  "buildTime": "2026-04-22T18:45:45.715Z",
+  "buildTime": "2026-04-24T18:15:25.847Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.72",
-    "types": "1.0.0-alpha.72"
+    "toolchain": "1.0.0-alpha.74",
+    "types": "1.0.0-alpha.74"
   },
   "repository": {
     "name": "General Extensions (0.9)",
@@ -34,7 +34,7 @@
     {
       "name": "Comix",
       "description": "Extension that pulls content from Comix.to.",
-      "version": "1.0.0-alpha.16",
+      "version": "1.0.0-alpha.17",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -51,7 +51,7 @@
     {
       "name": "ComixTo",
       "description": "Shim of the Comix extension which pulls content from Comix.to.",
-      "version": "1.0.0-alpha.2",
+      "version": "1.0.0-alpha.3",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -86,7 +86,7 @@
     {
       "name": "MangaDex",
       "description": "Extension that pulls content from mangadex.org.",
-      "version": "1.0.0-alpha.24",
+      "version": "1.0.0-alpha.25",
       "icon": "icon.png",
       "languages": "multi",
       "contentRating": "SAFE",
