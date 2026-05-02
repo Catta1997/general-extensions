@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-04-24T18:15:25.847Z",
+  "buildTime": "2026-05-02T13:15:02.106Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.74",
     "types": "1.0.0-alpha.74"
@@ -17,9 +17,9 @@
       "language": "en",
       "contentRating": "SAFE",
       "capabilities": [
+        1,
         16,
         4,
-        1,
         64,
         32
       ],
@@ -38,7 +38,13 @@
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
-      "capabilities": 117,
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
       "badges": [],
       "developers": [
         {
@@ -55,7 +61,13 @@
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
-      "capabilities": 117,
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
       "badges": [],
       "developers": [
         {
@@ -74,7 +86,13 @@
       "language": "en",
       "contentRating": "SAFE",
       "badges": [],
-      "capabilities": 117,
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
       "developers": [
         {
           "name": "samipmainali",
@@ -91,12 +109,12 @@
       "languages": "multi",
       "contentRating": "SAFE",
       "capabilities": [
-        8,
         1,
         4,
+        8,
+        2,
         64,
-        32,
-        2
+        32
       ],
       "badges": [],
       "developers": [
@@ -116,10 +134,10 @@
       "language": "en",
       "contentRating": "MATURE",
       "capabilities": [
-        4,
-        64,
         1,
-        16
+        16,
+        4,
+        64
       ],
       "badges": [],
       "developers": [
@@ -137,10 +155,10 @@
       "language": "en",
       "contentRating": "MATURE",
       "capabilities": [
-        4,
-        64,
         1,
-        16
+        16,
+        4,
+        64
       ],
       "badges": [],
       "developers": [
@@ -180,9 +198,9 @@
       "language": "en",
       "contentRating": "SAFE",
       "capabilities": [
+        1,
         16,
         4,
-        1,
         64
       ],
       "badges": [],
@@ -222,9 +240,9 @@
       "language": "en",
       "contentRating": "SAFE",
       "capabilities": [
+        1,
         16,
         4,
-        1,
         64
       ],
       "badges": [],
@@ -245,9 +263,9 @@
       "language": "multi",
       "contentRating": "MATURE",
       "capabilities": [
+        1,
         16,
         4,
-        1,
         64,
         32
       ],
@@ -267,9 +285,9 @@
       "language": "en",
       "contentRating": "SAFE",
       "capabilities": [
+        1,
         16,
         4,
-        1,
         64
       ],
       "badges": [],
@@ -309,7 +327,13 @@
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
-      "capabilities": 117,
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
       "badges": [],
       "developers": [
         {
