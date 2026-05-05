@@ -1,8 +1,8 @@
 {
-  "buildTime": "2026-05-05T08:43:57.397Z",
+  "buildTime": "2026-05-05T09:45:09.997Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.81",
-    "types": "1.0.0-alpha.81"
+    "toolchain": "1.0.0-alpha.83",
+    "types": "1.0.0-alpha.83"
   },
   "repository": {
     "name": "General Extensions (0.9)",
@@ -53,30 +53,6 @@
         }
       ],
       "id": "Comix"
-    },
-    {
-      "name": "ComixTo",
-      "description": "Shim of the Comix extension which pulls content from Comix.to.",
-      "version": "1.0.0-alpha.3",
-      "icon": "icon.png",
-      "language": "en",
-      "contentRating": "SAFE",
-      "capabilities": [
-        1,
-        16,
-        4,
-        64,
-        32
-      ],
-      "badges": [],
-      "developers": [
-        {
-          "name": "Celarye",
-          "website": "https://celarye.dev",
-          "github": "https://github.com/celarye"
-        }
-      ],
-      "id": "ComixTo"
     },
     {
       "name": "MangaDemon",
