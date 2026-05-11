@@ -1,8 +1,8 @@
 {
-  "buildTime": "2026-05-11T12:40:06.292Z",
+  "buildTime": "2026-05-11T17:56:35.530Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.86",
-    "types": "1.0.0-alpha.86"
+    "toolchain": "1.0.0-alpha.87",
+    "types": "1.0.0-alpha.87"
   },
   "repository": {
     "name": "General Extensions (0.9)",
@@ -12,7 +12,7 @@
     {
       "name": "Atsumaru",
       "description": "Extension that pulls content from atsu.moe.",
-      "version": "1.0.0-alpha.19",
+      "version": "1.0.0-alpha.20",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -34,7 +34,7 @@
     {
       "name": "Comix",
       "description": "Extension that pulls content from Comix.to.",
-      "version": "1.0.0-alpha.20",
+      "version": "1.0.0-alpha.21",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
