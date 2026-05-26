@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-05-19T09:25:47.616Z",
+  "buildTime": "2026-05-26T06:44:00.545Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.87",
     "types": "1.0.0-alpha.87"
@@ -34,7 +34,7 @@
     {
       "name": "Comix",
       "description": "Extension that pulls content from Comix.to.",
-      "version": "1.0.0-alpha.25",
+      "version": "1.0.0-alpha.29",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -101,6 +101,29 @@
         }
       ],
       "id": "MangaDex"
+    },
+    {
+      "name": "MangaFire",
+      "description": "Extension that pulls content from mangafire.to.",
+      "version": "1.0.0-alpha.13",
+      "icon": "icon.png",
+      "language": "multi",
+      "contentRating": "SAFE",
+      "capabilities": [
+        4,
+        64,
+        1,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Inkdex",
+          "website": "https://inkdex.github.io",
+          "github": "https://github.com/inkdex"
+        }
+      ],
+      "id": "MangaFire"
     },
     {
       "name": "MangaFox",
@@ -233,9 +256,9 @@
       "id": "Mgeko"
     },
     {
-      "name": "Punk Records",
+      "name": "PunkRecords",
       "description": "Extension pour récupérer le contenu de punkrecordz.com.",
-      "version": "1.0.0-alpha.1",
+      "version": "1.0.0-alpha.2",
       "icon": "icon.png",
       "language": "fr",
       "contentRating": "SAFE",
@@ -253,28 +276,6 @@
         }
       ],
       "id": "PunkRecords"
-    },
-    {
-      "name": "QToon",
-      "description": "Extension that pulls content from qtoon.com.",
-      "version": "1.0.0-alpha.3",
-      "icon": "icon.png",
-      "language": "multi",
-      "contentRating": "MATURE",
-      "capabilities": [
-        1,
-        16,
-        4,
-        64,
-        32
-      ],
-      "badges": [],
-      "developers": [
-        {
-          "name": "Lucifers Circle"
-        }
-      ],
-      "id": "QToon"
     },
     {
       "name": "QiScans",
