@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-06-06T17:15:21.044Z",
+  "buildTime": "2026-06-09T15:08:34.551Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.89",
     "types": "1.0.0-alpha.89"
@@ -101,7 +101,7 @@
       "id": "MangaDex"
     },
     {
-      "name": "MangaDotNet",
+      "name": "MangaDot",
       "description": "Extension that pulls content from MangaDot.net",
       "version": "1.0.0-alpha.2",
       "icon": "icon.png",
@@ -121,7 +121,7 @@
           "github": "https://github.com/Catta1997"
         }
       ],
-      "id": "MangaDotNet"
+      "id": "MangaDot"
     },
     {
       "name": "MangaFire",
