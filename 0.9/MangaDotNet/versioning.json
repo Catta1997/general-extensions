@@ -1,8 +1,8 @@
 {
-  "buildTime": "2026-06-14T19:45:00.454Z",
+  "buildTime": "2026-06-15T15:31:15.057Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.89",
-    "types": "1.0.0-alpha.89"
+    "toolchain": "1.0.0-alpha.92",
+    "types": "1.0.0-alpha.92"
   },
   "repository": {
     "name": "General Extensions (0.9)",
@@ -12,7 +12,7 @@
     {
       "name": "Atsumaru",
       "description": "Extension that pulls content from atsu.moe.",
-      "version": "1.0.0-alpha.21",
+      "version": "1.0.0-alpha.22",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -34,7 +34,7 @@
     {
       "name": "Comix",
       "description": "Extension that pulls content from Comix.to.",
-      "version": "1.0.0-alpha.35",
+      "version": "1.0.0-alpha.37",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -57,7 +57,7 @@
     {
       "name": "MangaDemon",
       "description": "Extension that pulls content from demonicscans.org.",
-      "version": "1.0.0-alpha.14",
+      "version": "1.0.0-alpha.15",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -191,7 +191,7 @@
     {
       "name": "MangaPlus",
       "description": "Extension that pulls content from mangaplus.shueisha.co.jp.",
-      "version": "1.0.0-alpha.10",
+      "version": "1.0.0-alpha.11",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -255,7 +255,7 @@
     {
       "name": "Mgeko",
       "description": "Extension that pulls content from mgeko.cc.",
-      "version": "1.0.0-alpha.27",
+      "version": "1.0.0-alpha.28",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
