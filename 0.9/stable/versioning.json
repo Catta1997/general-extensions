@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-06-24T17:55:58.764Z",
+  "buildTime": "2026-06-24T18:06:04.451Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.92",
     "types": "1.0.0-alpha.92"
@@ -59,6 +59,7 @@
       "description": "Extension that pulls content from LNori.",
       "version": "1.0.0-alpha.1",
       "icon": "icon.png",
+      "language": "en",
       "contentRating": "SAFE",
       "capabilities": [
         4,
