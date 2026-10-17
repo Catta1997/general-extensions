@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-10-17T08:39:15.074Z",
+  "buildTime": "2026-10-17T15:15:14.820Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.92",
     "types": "1.0.0-alpha.92"
@@ -53,6 +53,29 @@
         }
       ],
       "id": "Atsumaru"
+    },
+    {
+      "name": "Comix",
+      "description": "Extension that pulls content from Comix.to.",
+      "version": "1.0.0-alpha.48",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Catta1997",
+          "github": "https://github.com/Catta1997"
+        }
+      ],
+      "id": "Comix"
     },
     {
       "name": "FlameComics",
