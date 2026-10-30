@@ -55,6 +55,14 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
 
   private searchMetadata: SearchMetadata;
 
+  private chapterNum: string[] = ["any"];
+  private hasVolume: string[] = ["any"];
+  private minRating: string[] = ["any"];
+  private contentRating: string[] = ["any"];
+  private status: string[] = [""];
+  private origin: string[] = [""];
+  private adult: string[] = getShowAdultStatus();
+
   constructor(searchQuery: SearchQuery<SearchMetadata>) {
     super();
     if (searchQuery.metadata !== undefined) {
@@ -62,48 +70,101 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     } else {
       this.searchMetadata = defaultMetadata();
     }
+    this.chapterNum = this.searchMetadata.chapters ? this.searchMetadata.chapters : ["any"];
+    this.hasVolume = this.searchMetadata.volume ? this.searchMetadata.volume : ["any"];
+    this.minRating = this.searchMetadata.rating ? this.searchMetadata.rating : ["any"];
+    this.adult = this.searchMetadata.adult ? this.searchMetadata.adult : getShowAdultStatus();
+    this.contentRating = this.searchMetadata.contentRating
+      ? this.searchMetadata.contentRating
+      : ["any"];
+    this.status =
+      this.searchMetadata.status && this.searchMetadata.status.length > 0
+        ? this.searchMetadata.status
+        : [""];
+    this.origin =
+      this.searchMetadata.origin && this.searchMetadata.origin.length > 0
+        ? this.searchMetadata.origin
+        : [""];
+  }
+
+  override async formDidSubmit(): Promise<void> {
+    this.searchMetadata.rating = this.minRating;
+    this.searchMetadata.contentRating = this.contentRating;
+    this.searchMetadata.chapters = this.chapterNum;
+    this.searchMetadata.volume = this.hasVolume;
+    this.searchMetadata.status = this.status;
+    this.searchMetadata.origin = this.origin;
+    this.searchMetadata.adult = this.adult;
   }
 
   override getSections(): FormSectionElement<unknown>[] {
     return [
-      Section("genres", this.getGenresFilter()),
-      Section("tags", this.getTagsFilter()),
-      Section("status", this.getStatusFilter()),
-      Section("origin", this.getOriginFilter()),
-      Section("adult", [
-        SelectRow("adultToggle", {
-          title: "Show Adult results",
-          value: this.searchMetadata.adult ?? getShowAdultStatus(),
-          options: ADULT_FILTER,
-          minItemCount: 1,
-          maxItemCount: 1,
-          onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleAdult"),
-        }),
-      ]),
-      Section("comtent_rating", [
-        SelectRow("contentRating", {
-          title: "Content Rating",
-          value: this.searchMetadata.contentRating ?? ["any"],
-          options: CONTENT_RATING,
-          minItemCount: 1,
-          maxItemCount: 1,
-          onValueChange: Application.Selector(
-            this as MangaDotAdvancedSearchForm,
-            "handleContentRating",
-          ),
-        }),
-      ]),
-      Section("rating", [
-        SelectRow("Rating", {
-          title: "Minimum Rating",
-          value: this.searchMetadata.rating ?? ["any"],
-          options: RATING,
-          minItemCount: 1,
-          maxItemCount: 1,
-          onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleRating"),
-        }),
-      ]),
-      Section("language", [
+      Section({ id: "genres", header: "Genres" }, this.getGenresFilter()),
+      Section({ id: "tags", header: "Tags" }, this.getTagsFilter()),
+      SelectSection(this, {
+        header: "Status",
+        id: "status",
+        layout: "list",
+        value: this.status ?? [""],
+        items: STATUS,
+        minItemCount: 1,
+        maxItemCount: 1,
+      }),
+      SelectSection(this, {
+        header: "Origin",
+        id: "origin",
+        layout: "list",
+        value: this.origin ?? [""],
+        items: ORIGIN,
+        minItemCount: 1,
+        maxItemCount: ORIGIN.length,
+      }),
+      SelectSection(this, {
+        header: "Adult",
+        id: "adult",
+        layout: "list",
+        value: this.adult ?? getShowAdultStatus(),
+        items: ADULT_FILTER,
+        minItemCount: 1,
+        maxItemCount: 1,
+      }),
+      SelectSection(this, {
+        header: "Content Rating",
+        id: "contentRating",
+        layout: "list",
+        value: this.contentRating ?? ["any"],
+        items: CONTENT_RATING,
+        minItemCount: 1,
+        maxItemCount: 1,
+      }),
+      SelectSection(this, {
+        header: "Rating",
+        id: "rating",
+        layout: "list",
+        value: this.minRating ?? ["any"],
+        items: RATING,
+        minItemCount: 1,
+        maxItemCount: 1,
+      }),
+      SelectSection(this, {
+        header: "Volumes",
+        id: "volumes",
+        layout: "list",
+        value: this.hasVolume ?? ["any"],
+        items: VOLUME,
+        minItemCount: 1,
+        maxItemCount: 1,
+      }),
+      SelectSection(this, {
+        header: "Chapters",
+        id: "chapter",
+        layout: "list",
+        value: this.chapterNum ?? ["any"],
+        items: CHAPTERS_NUM,
+        minItemCount: 1,
+        maxItemCount: 1,
+      }),
+      Section({ id: "language", header: "Language" }, [
         SelectRow("language", {
           title: "Language",
           value: this.searchMetadata.language ?? [""],
@@ -113,40 +174,12 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
           onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleLanguage"),
         }),
       ]),
-      Section("volume", [
-        SelectRow("volume", {
-          title: "Volume",
-          value: this.searchMetadata.volume ?? ["any"],
-          options: VOLUME,
-          minItemCount: 1,
-          maxItemCount: 1,
-          onValueChange: Application.Selector(
-            this as MangaDotAdvancedSearchForm,
-            "handleHasVolume",
-          ),
-        }),
-      ]),
-      Section("chapters", [
-        SelectRow("chapters", {
-          title: "Minimum Chapters",
-          value: this.searchMetadata.chapters ?? ["any"],
-          options: CHAPTERS_NUM,
-          minItemCount: 1,
-          maxItemCount: 1,
-          onValueChange: Application.Selector(
-            this as MangaDotAdvancedSearchForm,
-            "handleMinChapters",
-          ),
-        }),
-      ]),
-      Section("author", [
+      Section({ id: "author_artist", header: "Author & Artist" }, [
         NavigationRow("author_filter", {
           title: "Authors",
           subtitle: this.searchMetadata.author?.flatMap(deNormalizeId).join(", ") ?? "",
           form: new AuthorFilter(this.searchMetadata),
         }),
-      ]),
-      Section("artist", [
         NavigationRow("artist_filter", {
           title: "Artists",
           subtitle: this.searchMetadata.artist?.flatMap(deNormalizeId).join(", ") ?? "",
@@ -232,41 +265,6 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     });
   }
 
-  getStatusFilter(): FormItemElement<unknown>[] {
-    return [
-      SelectRow("status", {
-        title: "Status",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleStatus"),
-        items: STATUS,
-        value:
-          this.searchMetadata.status && this.searchMetadata.status.length > 0
-            ? this.searchMetadata.status
-            : [""],
-        minItemCount: 1,
-        maxItemCount: 1,
-        isHidden: false,
-      }),
-    ];
-  }
-
-  getOriginFilter(): FormItemElement<unknown>[] {
-    return [
-      SelectRow("origin", {
-        title: "Content Type",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleOrigin"),
-        items: ORIGIN,
-        value:
-          this.searchMetadata.origin && this.searchMetadata.origin.length > 0
-            ? this.searchMetadata.origin
-            : [""],
-        minItemCount: 1,
-        maxItemCount: ORIGIN.length,
-        isHidden: false,
-      }),
-    ];
-  }
   private rowStates: Record<string, Record<string, "included" | "excluded">> = {};
 
   onValueChangeLabelProxy = new Proxy(this, {
@@ -303,24 +301,8 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     this.searchMetadata.tag = mergedTags;
   }
 
-  async handleHasVolume(value: string[]): Promise<void> {
-    this.searchMetadata.volume = value;
-  }
-
-  async handleMinChapters(value: string[]): Promise<void> {
-    this.searchMetadata.chapters = value;
-  }
-
   async handleLanguage(value: string[]): Promise<void> {
     this.searchMetadata.language = value;
-  }
-
-  async handleRating(value: string[]): Promise<void> {
-    this.searchMetadata.rating = value;
-  }
-
-  async handleContentRating(value: string[]): Promise<void> {
-    this.searchMetadata.contentRating = value;
   }
 
   async handleAdult(value: string[]): Promise<void> {
