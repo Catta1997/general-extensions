@@ -28,6 +28,8 @@ import {
   type SearchResponse,
   type SearchSuggestionsResponse,
   type Volumes,
+  type Languages,
+  type CategoryGroup,
 } from "./models";
 import {
   defaultMetadata,
@@ -230,7 +232,14 @@ export class MangaDotApi {
       ...query.metadata?.more,
       ...query.metadata?.themes,
     };
+    const tags = {
+      ...query.metadata?.tag,
+    };
     const formattedGenres = Object.entries(genres).map(([genre, state]) => {
+      const normalized = deNormalizeId(genre);
+      return state === "excluded" ? `-${normalized}` : normalized;
+    });
+    const formattedTags = Object.entries(tags).map(([genre, state]) => {
       const normalized = deNormalizeId(genre);
       return state === "excluded" ? `-${normalized}` : normalized;
     });
@@ -241,6 +250,7 @@ export class MangaDotApi {
         ...(query.title && { search: query.title }),
         page: page.toString(),
         ...(formattedGenres.length && { genres: formattedGenres.join(",") }),
+        ...(formattedTags.length && { tags: formattedTags.join(",") }),
         ...(query.metadata?.origin?.length && {
           origin: (query.metadata?.origin ?? []).join(",").replaceAll("&", ","),
         }),
@@ -255,6 +265,11 @@ export class MangaDotApi {
         }),
         sortBy: sort,
         sortOrder: order ? order : "",
+        content_rating: query.metadata?.contentRating ?? "",
+        min_rating: query.metadata?.rating ?? "",
+        lang: query.metadata?.language ?? "",
+        volumes: query.metadata?.volume ?? "",
+        min_chapters: query.metadata?.chapters ?? "",
         adult: query.metadata?.adult ?? getShowAdultStatus(),
       },
     };
@@ -275,6 +290,13 @@ export class MangaDotApi {
       path: ["api", "manga", "genres"],
     };
     return this.buildApiRequest<string[]>(params);
+  }
+
+  async getLanguages() {
+    const params: ApiRequestConfig = {
+      path: ["api", "languages"],
+    };
+    return this.buildApiRequest<Languages>(params);
   }
 
   async getAuthor(value: string) {
@@ -324,5 +346,13 @@ export class MangaDotApi {
       })),
       metadata: undefined,
     };
+  }
+
+  async getTagsList() {
+    const params: ApiRequestConfig = {
+      path: ["api", "manga", "tags"],
+      query: { in_use: "1" },
+    };
+    return this.buildApiRequest<CategoryGroup[]>(params);
   }
 }

@@ -35,7 +35,13 @@ import {
   type SectionItemType,
 } from "./parsers";
 import type MangaDotConfig from "./pbconfig";
-import { checkFilters, defaultMetadata, getDiscoverySectionsOrder, getRangeStatus } from "./utils";
+import {
+  checkFilters,
+  defaultMetadata,
+  getDiscoverySectionsOrder,
+  getRangeStatus,
+  saveTags,
+} from "./utils";
 
 export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   api = new MangaDotApi();
@@ -196,6 +202,8 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     searchQuery: SearchQuery<SearchMetadata>,
   ): Promise<AdvancedSearchForm> {
     await checkFilters(this.api);
+    const tags = await this.api.getTagsList();
+    saveTags(tags);
     return new MangaDotAdvancedSearchForm(searchQuery);
   }
 

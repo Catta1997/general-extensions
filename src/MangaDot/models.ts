@@ -77,6 +77,94 @@ export const ADULT_FILTER = [
   },
 ];
 
+export const CONTENT_RATING = [
+  {
+    id: "any",
+    title: "Any",
+  },
+  {
+    id: "safe",
+    title: "Safe",
+  },
+  {
+    id: "suggestive",
+    title: "Suggestive",
+  },
+  {
+    id: "erotica",
+    title: "Erotica",
+  },
+  {
+    id: "pornographic",
+    title: "Pornographic",
+  },
+];
+
+export const RATING = [
+  {
+    id: "any",
+    title: "Any",
+  },
+  {
+    id: "5",
+    title: "5+",
+  },
+  {
+    id: "6",
+    title: "6+",
+  },
+  {
+    id: "7",
+    title: "7+",
+  },
+  {
+    id: "8",
+    title: "8+",
+  },
+  {
+    id: "9",
+    title: "9+",
+  },
+];
+
+export const VOLUME = [
+  {
+    id: "any",
+    title: "Any",
+  },
+  {
+    id: "with",
+    title: "Has Volume",
+  },
+  {
+    id: "without",
+    title: "No Volumes",
+  },
+];
+
+export const CHAPTERS_NUM = [
+  {
+    id: "any",
+    title: "Any",
+  },
+  {
+    id: "10",
+    title: "10+",
+  },
+  {
+    id: "25",
+    title: "25+",
+  },
+  {
+    id: "50",
+    title: "50+",
+  },
+  {
+    id: "100",
+    title: "100+",
+  },
+];
+
 export interface MangaData extends MangaSectionItem {
   genres: string[];
   date_added: string;
@@ -143,18 +231,29 @@ export interface Volumes {
   cover_url: string;
 }
 
+export interface Languages {
+  languages: { code: string; name: string }[];
+}
+
 export type SearchMetadata = {
   genres?: { [id: string]: "included" | "excluded" };
   demographic?: { [id: string]: "included" | "excluded" };
   themes?: { [id: string]: "included" | "excluded" };
   more?: { [id: string]: "included" | "excluded" };
+  tag?: { [id: string]: "included" | "excluded" };
   origin?: string[];
   status?: string[];
   author?: string[];
   artist?: string[];
   adult?: string[];
   range?: string;
+  contentRating?: string[];
+  rating?: string[];
+  language?: string[];
+  volume?: string[];
+  chapters?: string[];
   sectionName?: string;
+  [key: string]: any;
 };
 
 export type PageMetadata = {
@@ -184,3 +283,16 @@ export const discoverySections = [
   { id: "themes", title: "Themes" },
   { id: "demographics", title: "Demographics" },
 ];
+
+export interface TagItem {
+  name: string;
+  series_count: number;
+  is_adult: boolean;
+}
+
+export interface CategoryGroup {
+  category: string;
+  tags: TagItem[];
+}
+
+export type CategorizedTagsMap = Record<string, TagItem[]>;

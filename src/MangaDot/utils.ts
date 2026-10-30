@@ -3,7 +3,7 @@
 
 import type { Tag } from "@paperback/types";
 
-import { discoverySections, type SearchMetadata } from "./models";
+import { type CategoryGroup, discoverySections, type SearchMetadata, type TagItem } from "./models";
 import type { MangaDotApi } from "./network";
 
 export function normalizeId(id: string): string {
@@ -90,11 +90,12 @@ export function defaultMetadata(filterItem: string = ""): SearchMetadata {
 
 export function getFilters(): GenreFilters {
   const filters = Application.getState("search_filter") as string | undefined;
-  if (filters === undefined) return { demographic: [], genre: [], more: [], themeAndContent: [] };
+  if (filters === undefined)
+    return { demographic: [], genre: [], more: [], themeAndContent: [], language: [] };
   try {
     return JSON.parse(filters) as GenreFilters;
   } catch {
-    return { demographic: [], genre: [], more: [], themeAndContent: [] };
+    return { demographic: [], genre: [], more: [], themeAndContent: [], language: [] };
   }
 }
 
@@ -124,6 +125,9 @@ export async function updateFilters(force: boolean, api: MangaDotApi): Promise<v
   const fetchedGenres = await api.getFilters();
   fetchedGenres.sort((a, b) => a.localeCompare(b));
   const filters = groupGenres(fetchedGenres);
+  const lang = await api.getLanguages();
+  filters.language = lang.languages.map((l): Tag => ({ id: l.code, title: l.name }));
+  filters.language.unshift({ id: "", title: "All" });
   Application.setState(JSON.stringify(filters), "search_filter");
   Application.setState(String(new Date().valueOf() / 1000), "last_genres_fetch");
 }
@@ -175,6 +179,7 @@ export interface GenreFilters {
   genre: Tag[];
   themeAndContent: Tag[];
   more: Tag[];
+  language: Tag[];
 }
 export function groupGenres(genres: readonly string[]): GenreFilters {
   const grouped: GenreFilters = {
@@ -182,6 +187,7 @@ export function groupGenres(genres: readonly string[]): GenreFilters {
     genre: [],
     themeAndContent: [],
     more: [],
+    language: [],
   };
 
   for (const genre of genres) {
@@ -205,4 +211,26 @@ export function groupGenres(genres: readonly string[]): GenreFilters {
   }
 
   return grouped;
+}
+
+export let TAGS: Record<string, TagItem[]> = {};
+
+export function saveTags(apiResponse: CategoryGroup[]) {
+  TAGS = groupTagsByCategory(apiResponse);
+}
+
+function groupTagsByCategory(apiResponse: CategoryGroup[]): Record<string, TagItem[]> {
+  let dataArray: CategoryGroup[] = apiResponse;
+  if (!Array.isArray(apiResponse)) {
+    dataArray = Object.values(apiResponse).find((val) => Array.isArray(val)) || [];
+  }
+  return dataArray.reduce(
+    (acc, current) => {
+      if (current && current.category && current.tags) {
+        acc[current.category] = current.tags;
+      }
+      return acc;
+    },
+    {} as Record<string, TagItem[]>,
+  );
 }
