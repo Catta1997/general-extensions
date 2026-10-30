@@ -67,6 +67,7 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
   override getSections(): FormSectionElement<unknown>[] {
     return [
       Section("genres", this.getGenresFilter()),
+      Section("tags", this.getTagsFilter()),
       Section("status", this.getStatusFilter()),
       Section("origin", this.getOriginFilter()),
       Section("adult", [
@@ -156,6 +157,54 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
   }
 
   getGenresFilter(): FormItemElement<unknown>[] {
+    return [
+      TriStateSelectRow("genres", {
+        title: "Genres",
+        layout: "list",
+        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleGenres"),
+        items: getFilters().genre,
+        value: this.searchMetadata.genres ?? {},
+        allowEmptySelection: true,
+        allowExclusion: true,
+        isHidden: false,
+      }),
+      TriStateSelectRow("demographic", {
+        title: "Demographic",
+        layout: "list",
+        onValueChange: Application.Selector(
+          this as MangaDotAdvancedSearchForm,
+          "handleDemographic",
+        ),
+        items: getFilters().demographic,
+        value: this.searchMetadata.demographic ?? {},
+        allowEmptySelection: true,
+        allowExclusion: true,
+        isHidden: false,
+      }),
+      TriStateSelectRow("themes", {
+        title: "Themes",
+        layout: "list",
+        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleThemes"),
+        items: getFilters().themeAndContent,
+        value: this.searchMetadata.themes ?? {},
+        allowEmptySelection: true,
+        allowExclusion: true,
+        isHidden: false,
+      }),
+      TriStateSelectRow("more", {
+        title: "More",
+        layout: "list",
+        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleMore"),
+        items: getFilters().more,
+        value: this.searchMetadata.more ?? {},
+        allowEmptySelection: true,
+        allowExclusion: true,
+        isHidden: false,
+      }),
+    ];
+  }
+
+  getTagsFilter(): FormItemElement<unknown>[] {
     return Object.entries(TAGS).map(([categoryName, tags]) => {
       const rowId = categoryName.toLowerCase().replace(/[^a-z0-9]/g, "_");
       const itemsArray = tags.map((tag: TagItem) => ({
