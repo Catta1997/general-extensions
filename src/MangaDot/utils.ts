@@ -102,8 +102,10 @@ export function getFilters(): GenreFilters {
 export async function checkFilters(api: MangaDotApi): Promise<void> {
   // Force only when no tags were stored at all.
   const filters = getFilters();
+  const categories = getCachedCategorizedTags();
   const isEmpty =
-    filters.genre.length +
+    Object.keys(categories).length +
+      filters.genre.length +
       filters.themeAndContent.length +
       filters.demographic.length +
       filters.more.length ===
@@ -115,13 +117,16 @@ export async function updateFilters(force: boolean, api: MangaDotApi): Promise<v
   const lastFilterFetch = Number(Application.getState("last_genres_fetch") ?? 0);
   const cached = lastFilterFetch + 172800 > new Date().valueOf() / 1000;
   if (cached && !force) {
-    // The cache is still valid; only refetch if the persisted value went missing.
-    if (Application.getState("search_filter") === undefined) {
+    if (
+      Application.getState("search_filter") === undefined ||
+      Application.getState("search_categories") === undefined
+    ) {
       await updateFilters(true, api);
     }
     return;
   }
 
+  // GENRES
   const fetchedGenres = await api.getFilters();
   fetchedGenres.sort((a, b) => a.localeCompare(b));
   const filters = groupGenres(fetchedGenres);
@@ -129,8 +134,37 @@ export async function updateFilters(force: boolean, api: MangaDotApi): Promise<v
   filters.language = lang.languages.map((l): Tag => ({ id: l.code, title: l.name }));
   filters.language.unshift({ id: "", title: "All" });
   Application.setState(JSON.stringify(filters), "search_filter");
+  // TAGS
+  const rawData = await api.getTagsList();
+  const categorizedTags = groupTagsByCategory(rawData);
+  const categoryNames: string[] = [];
+  for (const [categoryName, tags] of Object.entries(categorizedTags)) {
+    const rowId = categoryName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    const storageKey = `filter_cat_${rowId}`;
+    Application.setState(JSON.stringify(tags), storageKey);
+    categoryNames.push(categoryName);
+  }
+  Application.setState(JSON.stringify(categoryNames), "search_categories");
   Application.setState(String(new Date().valueOf() / 1000), "last_genres_fetch");
 }
+
+export function getCachedCategorizedTags() {
+  const categoriesJson = Application.getState("search_categories") as string | undefined;
+  if (categoriesJson === undefined) return {};
+  const categoryNames: string[] = JSON.parse(categoriesJson);
+  const result: Record<string, TagItem[]> = {};
+  for (const categoryName of categoryNames) {
+    const rowId = categoryName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+    const storageKey = `filter_cat_${rowId}`;
+    const tagsJson = Application.getState(storageKey) as string | undefined;
+    if (tagsJson) {
+      result[categoryName] = JSON.parse(tagsJson);
+    }
+  }
+  TAGS = result;
+  return result;
+}
+
 type GenreCategory = "Demographic" | "Genre" | "Theme & content" | "More";
 
 const CATEGORY_MAP: Record<string, Exclude<GenreCategory, "More">> = {
