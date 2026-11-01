@@ -3,6 +3,7 @@
 
 import {
   ButtonRow,
+  type Cookie,
   EditSection,
   Form,
   FormConfirmationError,
@@ -13,10 +14,12 @@ import {
   Section,
   SelectRow,
   ToggleRow,
+  WebViewRow,
 } from "@paperback/types";
 
 import { ADULT_FILTER, discoverySections, ORIGIN } from "../models";
-import type { MangaDotApi } from "../network";
+import type { LogInManager } from "../network";
+import { type MangaDotApi } from "../network";
 import {
   getContentTypes,
   getGenresHidden,
@@ -34,75 +37,66 @@ import {
 
 export class SettingsForm extends Form {
   api: MangaDotApi;
-  constructor(api: MangaDotApi) {
+  login: LogInManager;
+  userAgent: string;
+  loadUsernameRequest?: Promise<unknown>;
+  username?: string;
+  constructor(api: MangaDotApi, userAgent: string, login: LogInManager) {
     super();
+    this.login = login;
+    this.userAgent = userAgent;
     this.api = api;
   }
+  override formWillAppear(): void {
+    this.loadUsernameRequest = this.login
+      .getAccountID()
+      .then((user) => {
+        this.username = user;
+      })
+      .finally(() => {
+        this.reloadForm();
+      });
+  }
   override getSections() {
-    const filters = getFilters();
+    if (this.username == undefined) {
+      return [Section("loading", [LabelRow("loading", { title: "Loading..." })])];
+    }
     return [
       Section(
         {
-          id: "update_settings",
-          header: "Default Search Filter",
+          id: "account",
+          header: "Account Settings",
         },
         [
-          SelectRow("type", {
-            title: "Content Type",
-            subtitle: "This settings only as default search filter",
-            value: getContentTypes(),
-            options: ORIGIN,
-            minItemCount: 0,
-            maxItemCount: ORIGIN.length,
-            onValueChange: Application.Selector(this as SettingsForm, "handleTypeStatusChange"),
+          WebViewRow("loginRow", {
+            title: "Login",
+            request: {
+              url: "https://mangadot.net/login",
+              method: "GET",
+              headers: { "user-agent": this.userAgent },
+            },
+            isHidden: this.login.isLoggedIn(),
+            onComplete: Application.Selector(this as SettingsForm, "handleLogin"),
+            onCancel: Application.Selector(this as SettingsForm, "handleLoginCancel"),
           }),
-          SelectRow("hide_genres", {
-            title: "Hide Genres",
-            subtitle: "Default value for contents",
-            value: getGenresHidden(),
-            options: filters.genre,
-            minItemCount: 0,
-            maxItemCount: filters.genre.length,
-            onValueChange: Application.Selector(
-              this as SettingsForm,
-              "handleHideGenresStatusChange",
-            ),
+          LabelRow("logged", {
+            title: "Logged in as",
+            subtitle: `Account ID: ${this.username}`,
+            isHidden: !this.login.isLoggedIn(),
           }),
-          SelectRow("hide_demographic", {
-            title: "Hide Demographic",
-            subtitle: "Default value for contents",
-            value: getDemographicHidden(),
-            options: filters.demographic,
-            minItemCount: 0,
-            maxItemCount: filters.demographic.length,
-            onValueChange: Application.Selector(
-              this as SettingsForm,
-              "handleHideDemographicStatusChange",
-            ),
-          }),
-          SelectRow("hide_themes", {
-            title: "Hide Themes",
-            subtitle: "Default value for contents",
-            value: getThemesHidden(),
-            options: filters.themeAndContent,
-            minItemCount: 0,
-            maxItemCount: filters.themeAndContent.length,
-            onValueChange: Application.Selector(
-              this as SettingsForm,
-              "handleHideThemesStatusChange",
-            ),
-          }),
-          SelectRow("hide_more", {
-            title: "Hide More",
-            subtitle: "Default value for contents",
-            value: getMoreHidden(),
-            options: filters.more,
-            minItemCount: 0,
-            maxItemCount: filters.more.length,
-            onValueChange: Application.Selector(this as SettingsForm, "handleHideMoreStatusChange"),
+          ButtonRow("logout", {
+            title: "Logout",
+            isHidden: !this.login.isLoggedIn(),
+            onSelect: Application.Selector(this as SettingsForm, "handleLogoutButton"),
           }),
         ],
       ),
+      Section({ id: "search", header: "Default Search Filters" }, [
+        NavigationRow("searchFilters", {
+          title: "Search Filters",
+          form: new DefaultMetadata(),
+        }),
+      ]),
       Section(
         {
           id: "section_settings",
@@ -204,26 +198,36 @@ export class SettingsForm extends Form {
     this.reloadForm();
   }
 
+  async handleLogin(cookies: Cookie[]): Promise<void> {
+    await this.login.logIn(cookies);
+    Application.invalidateDiscoverSections();
+    this.reloadForm();
+    return;
+  }
+
+  async handleLoginCancel(): Promise<void> {
+    this.reloadForm();
+    return;
+  }
+
+  async handleLogoutButton(): Promise<void> {
+    throw new FormConfirmationError(
+      Application.Selector(this as SettingsForm, "handleLogoutConfirm"),
+      "Do you want to logout?",
+    );
+  }
+
+  async handleLogoutConfirm() {
+    this.login.logOut();
+    this.reloadForm();
+  }
+
   async handleShowAdultStatusChange(value: string[]): Promise<void> {
     await this.updateValue(value, "show_adult_content");
   }
 
   async handleEnglishOnlyStatusChange(value: boolean): Promise<void> {
     await this.updateValue(value, "english_only_content");
-  }
-
-  async handleTypeStatusChange(value: string[]): Promise<void> {
-    const previous = getContentTypes();
-
-    const hadAnyBefore = previous.includes("");
-    const hasAnyNow = value.includes("");
-
-    if (hadAnyBefore && value.length > 1) {
-      value = value.filter((v) => v !== "");
-    } else if (!hadAnyBefore && hasAnyNow) {
-      value = [""];
-    }
-    await this.updateValue(value, "content_type");
   }
 
   async handleRangeTypeStatusChange(value: boolean): Promise<void> {
@@ -249,22 +253,6 @@ export class SettingsForm extends Form {
     }
 
     await this.updateValue(value, "section_content_type");
-  }
-
-  async handleHideGenresStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "hidden_genres");
-  }
-
-  async handleHideDemographicStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "hidden_demographic");
-  }
-
-  async handleHideThemesStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "hidden_themes");
-  }
-
-  async handleHideMoreStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "hidden_more");
   }
 
   async resetFiltersDialog() {
@@ -299,6 +287,112 @@ export function getDiscoverySectionsOrder() {
     (Application.getState("sections") as { id: string; title: string }[] | undefined) ??
     discoverySections
   );
+}
+
+class DefaultMetadata extends Form {
+  override getSections() {
+    const filters = getFilters();
+    return [
+      Section(
+        {
+          id: "update_settings",
+          header: "Default Search Filter",
+        },
+        [
+          SelectRow("type", {
+            title: "Content Type",
+            subtitle: "This settings only as default search filter",
+            value: getContentTypes(),
+            options: ORIGIN,
+            minItemCount: 0,
+            maxItemCount: ORIGIN.length,
+            onValueChange: Application.Selector(this as DefaultMetadata, "handleTypeStatusChange"),
+          }),
+          SelectRow("hide_genres", {
+            title: "Hide Genres",
+            subtitle: "Default value for contents",
+            value: getGenresHidden(),
+            options: filters.genre,
+            minItemCount: 0,
+            maxItemCount: filters.genre.length,
+            onValueChange: Application.Selector(
+              this as DefaultMetadata,
+              "handleHideGenresStatusChange",
+            ),
+          }),
+          SelectRow("hide_demographic", {
+            title: "Hide Demographic",
+            subtitle: "Default value for contents",
+            value: getDemographicHidden(),
+            options: filters.demographic,
+            minItemCount: 0,
+            maxItemCount: filters.demographic.length,
+            onValueChange: Application.Selector(
+              this as DefaultMetadata,
+              "handleHideDemographicStatusChange",
+            ),
+          }),
+          SelectRow("hide_themes", {
+            title: "Hide Themes",
+            subtitle: "Default value for contents",
+            value: getThemesHidden(),
+            options: filters.themeAndContent,
+            minItemCount: 0,
+            maxItemCount: filters.themeAndContent.length,
+            onValueChange: Application.Selector(
+              this as DefaultMetadata,
+              "handleHideThemesStatusChange",
+            ),
+          }),
+          SelectRow("hide_more", {
+            title: "Hide More",
+            subtitle: "Default value for contents",
+            value: getMoreHidden(),
+            options: filters.more,
+            minItemCount: 0,
+            maxItemCount: filters.more.length,
+            onValueChange: Application.Selector(
+              this as DefaultMetadata,
+              "handleHideMoreStatusChange",
+            ),
+          }),
+        ],
+      ),
+    ];
+  }
+  async updateValue<T>(value: T, filter: string): Promise<void> {
+    Application.setState(value, filter);
+    this.reloadForm();
+  }
+  async handleHideGenresStatusChange(value: string[]): Promise<void> {
+    await this.updateValue(value, "hidden_genres");
+  }
+
+  async handleHideDemographicStatusChange(value: string[]): Promise<void> {
+    await this.updateValue(value, "hidden_demographic");
+  }
+
+  async handleHideThemesStatusChange(value: string[]): Promise<void> {
+    await this.updateValue(value, "hidden_themes");
+  }
+
+  async handleHideMoreStatusChange(value: string[]): Promise<void> {
+    await this.updateValue(value, "hidden_more");
+  }
+
+  async handleTypeStatusChange(value: string[]): Promise<void> {
+    const previous = getContentTypes();
+
+    const hadAnyBefore = previous.includes("");
+    const hasAnyNow = value.includes("");
+
+    if (hadAnyBefore && value.length > 1) {
+      value = value.filter((v) => v !== "");
+    } else if (!hadAnyBefore && hasAnyNow) {
+      value = [""];
+    }
+    await this.updateValue(value, "content_type");
+  }
 }
 
 class EditableListTestForm extends Form {

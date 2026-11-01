@@ -235,6 +235,12 @@ export interface Languages {
   languages: { code: string; name: string }[];
 }
 
+export interface Profile {
+  profile: {
+    username: string;
+  };
+}
+
 export type SearchMetadata = {
   genres?: { [id: string]: "included" | "excluded" };
   demographic?: { [id: string]: "included" | "excluded" };
@@ -282,6 +288,7 @@ export const discoverySections = [
   { id: "genres", title: "Genres" },
   { id: "themes", title: "Themes" },
   { id: "demographics", title: "Demographics" },
+  { id: "for_you", title: "For You" },
 ];
 
 export interface TagItem {
