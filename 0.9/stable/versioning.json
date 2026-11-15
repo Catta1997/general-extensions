@@ -1,8 +1,8 @@
 {
-  "buildTime": "2026-11-13T09:05:13.842Z",
+  "buildTime": "2026-11-15T16:27:29.152Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.94",
-    "types": "1.0.0-alpha.94"
+    "toolchain": "1.0.0-alpha.95",
+    "types": "1.0.0-alpha.95"
   },
   "repository": {
     "name": "General Extensions (0.9)",
