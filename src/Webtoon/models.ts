@@ -5,7 +5,7 @@ import type { JSONObject } from "@paperback/types";
 import type { Cheerio } from "cheerio";
 import type { Element } from "domhandler";
 
-export const BASE_URL = "https://www.webtoons.com";
+export const BASE_URL = "https://www.webtoonss.com";
 export const MOBILE_URL = "https://m.webtoons.com";
 
 export const CANVAS_WANTED = "canvas_wanted";
