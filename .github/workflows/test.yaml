@@ -68,19 +68,24 @@ jobs:
           EVENT: ${{ github.event_name }}
           EXTENSIONS: ${{ steps.changed.outputs.list }}
         run: |
-          # On PRs with only extension changes, test just those extensions.
-          # In every other case (schedule, workflow_run, dispatch, shared code
-          # changes), run the full suite.
-          if [ "$EVENT" = "pull_request" ] && [ -n "$EXTENSIONS" ]; then
-            npm test -- $EXTENSIONS
-          else
+          # Full suite for every trigger except PRs that only touch extensions
+          if [ "$EVENT" != "pull_request" ] || [ -z "$EXTENSIONS" ]; then
             npm test
+            exit $?
           fi
 
-      - name: Upload Test Results
-        # Test results are only uploaded outside of pull requests
-        if: ${{ github.event_name != 'pull_request' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: tests.json
-          path: bundles/tests.json
+          # The CLI accepts only one extension per run, so test them one by one
+          STATUS=0
+          for EXT in $EXTENSIONS; do
+            # Skip extensions deleted by the PR (folder no longer exists)
+            if [ ! -d "src/$EXT" ]; then
+              echo "Skipping $EXT (folder removed)"
+              continue
+            fi
+
+            echo "::group::Testing $EXT"
+            # Don't stop at the first failure: run all, fail at the end
+            npm test -- "$EXT" || STATUS=1
+            echo "::endgroup::"
+          done
+          exit $STATUS
