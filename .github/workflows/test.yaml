@@ -1,4 +1,4 @@
-name: Run Tests
+name: Run Extension Tests
 on:
   workflow_run:
     workflows:
@@ -19,14 +19,15 @@ concurrency:
 
 jobs:
   test:
-    name: Run Tests
+    name: Run Extension Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Branch
         uses: actions/checkout@v6
         with:
-          # Full history is required to diff the PR against its base branch
-          fetch-depth: 0
+          # On PRs this is the merge commit; depth 2 includes both parents,
+          # which is enough to diff the PR against its base
+          fetch-depth: 2
 
       - name: Setup Node.js Environment
         uses: actions/setup-node@v6
@@ -37,58 +38,29 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Detect changed extensions
-        id: changed
-        # Only relevant on pull requests; other triggers always run the full suite
-        if: ${{ github.event_name == 'pull_request' }}
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Run Extension Tests
         run: |
-          # List every file changed by the PR (three dots = diff from the merge base)
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            CHANGED=$(git diff --name-only HEAD^ HEAD)
 
-          # If the PR touches anything outside src/<extension>/, run the full suite
-          if echo "$CHANGED_FILES" | grep -qvE '^src/[^/]+/'; then
-            echo "list=" >> "$GITHUB_OUTPUT"
-            echo "Changes outside extensions detected: running full test suite"
-            exit 0
-          fi
+            # Only extension folders changed: test just those, one at a time
+            # (the CLI accepts a single extension per run)
+            if ! echo "$CHANGED" | grep -qvE '^src/[^/]+/'; then
+              STATUS=0
+              for EXT in $(echo "$CHANGED" | cut -d/ -f2 | sort -u); do
+                # Skip extensions deleted by the PR
+                [ -d "src/$EXT" ] || continue
 
-          # Extract the extension folder name (second path segment), deduplicated
-          EXTENSIONS=$(echo "$CHANGED_FILES" \
-            | cut -d/ -f2 \
-            | sort -u \
-            | tr '\n' ' ')
-          echo "list=$EXTENSIONS" >> "$GITHUB_OUTPUT"
-          echo "Changed extensions: '$EXTENSIONS'"
-
-      - name: Run Tests
-        env:
-          EVENT: ${{ github.event_name }}
-          EXTENSIONS: ${{ steps.changed.outputs.list }}
-        run: |
-          # Full suite for every trigger except PRs that only touch extensions
-          if [ "$EVENT" != "pull_request" ] || [ -z "$EXTENSIONS" ]; then
-            npm test
-            exit $?
-          fi
-
-          # The CLI accepts only one extension per run, so test them one by one
-          STATUS=0
-          for EXT in $EXTENSIONS; do
-            # Skip extensions deleted by the PR (folder no longer exists)
-            if [ ! -d "src/$EXT" ]; then
-              echo "Skipping $EXT (folder removed)"
-              continue
+                echo "::group::Testing $EXT"
+                npm test -- "$EXT" || STATUS=1
+                echo "::endgroup::"
+              done
+              exit $STATUS
             fi
+          fi
 
-            echo "::group::Testing $EXT"
-            # Keep going after a failure, fail the job at the end
-            npm test -- "$EXT" || STATUS=1
-            echo "::endgroup::"
-          done
-          exit $STATUS
+          # Every other trigger, or PRs touching shared code: full suite
+          npm test
 
       - name: Upload Test Results
         # Test results are only uploaded outside of pull requests
