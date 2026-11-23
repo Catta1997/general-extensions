@@ -1,5 +1,4 @@
 name: Run Tests
-
 on:
   workflow_run:
     workflows:
@@ -25,16 +24,61 @@ jobs:
     steps:
       - name: Checkout Branch
         uses: actions/checkout@v6
+        with:
+          # Full history is required to diff the PR against its base branch
+          fetch-depth: 0
+
       - name: Setup Node.js Environment
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
+
       - name: Install Dependencies
         run: npm ci
+
+      - name: Detect changed extensions
+        id: changed
+        # Only relevant on pull requests; other triggers always run the full suite
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # List every file changed by the PR (three dots = diff from the merge base)
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+
+          # If the PR touches anything outside src/<extension>/, run the full suite
+          if echo "$CHANGED_FILES" | grep -qvE '^src/[^/]+/'; then
+            echo "list=" >> "$GITHUB_OUTPUT"
+            echo "Changes outside extensions detected: running full test suite"
+            exit 0
+          fi
+
+          # Extract the extension folder name (second path segment), deduplicated
+          EXTENSIONS=$(echo "$CHANGED_FILES" \
+            | cut -d/ -f2 \
+            | sort -u \
+            | tr '\n' ' ')
+          echo "list=$EXTENSIONS" >> "$GITHUB_OUTPUT"
+          echo "Changed extensions: '$EXTENSIONS'"
+
       - name: Run Tests
-        run: npm test
+        env:
+          EVENT: ${{ github.event_name }}
+          EXTENSIONS: ${{ steps.changed.outputs.list }}
+        run: |
+          # On PRs with only extension changes, test just those extensions.
+          # In every other case (schedule, workflow_run, dispatch, shared code
+          # changes), run the full suite.
+          if [ "$EVENT" = "pull_request" ] && [ -n "$EXTENSIONS" ]; then
+            npm test -- $EXTENSIONS
+          else
+            npm test
+          fi
+
       - name: Upload Test Results
+        # Test results are only uploaded outside of pull requests
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v7
         with:
